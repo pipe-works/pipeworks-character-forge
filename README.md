@@ -33,9 +33,15 @@ dataset-export time.
 - `src/pipeworks_character_forge/` — the FastAPI app + diffusers wrapper.
 - `src/pipeworks_character_forge/data/slots.json` — canonical 25-slot
   definition; served to the frontend via `GET /api/slots`.
-- `runs/<run_id>/` — outputs land here; `dataset/` subdir is the
-  ai-toolkit-ready folder.
 - `deploy/` — systemd unit, nginx vhost, env example.
+
+Runtime mutable state lives **outside** the repo, mirroring the
+`pipeworks-image-generator` convention:
+
+- `/srv/work/pipeworks/runtime/character-forge/models/` — Hugging Face
+  cache for the FLUX.2-klein weights.
+- `/srv/work/pipeworks/runtime/character-forge/runs/<run_id>/` — outputs
+  land here; `dataset/` subdir is the ai-toolkit-ready folder.
 
 ## Hostname
 
