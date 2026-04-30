@@ -1,0 +1,88 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pipeworks-character-forge"
+version = "0.1.0"
+description = "Local-only character dataset forge: one source image → 25-image LoRA dataset via FLUX.2-klein-base-9B image-to-image chaining."
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+license = {text = "GPL-3.0-or-later"}
+authors = [
+    {name = "aapark"},
+]
+dependencies = [
+    "fastapi>=0.110.0",
+    "uvicorn[standard]>=0.27.0",
+    "pydantic>=2.0.0",
+    "pydantic-settings>=2.0.0",
+    "pillow>=10.0.0",
+    "python-dotenv>=1.0.0",
+    "python-multipart>=0.0.9",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-cov>=4.1.0",
+    "httpx>=0.27.0",
+    "black==26.1.0",
+    "ruff>=0.14.0",
+    "mypy>=1.19.0",
+]
+ml = [
+    "torch>=2.5.0",
+    "diffusers>=0.36.0",
+    "accelerate>=0.30.0",
+    "transformers>=4.40.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/pipe-works/pipeworks-character-forge"
+Repository = "https://github.com/pipe-works/pipeworks-character-forge.git"
+Issues = "https://github.com/pipe-works/pipeworks-character-forge/issues"
+
+[project.scripts]
+pw-forge = "pipeworks_character_forge.api.main:main"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.package-data]
+pipeworks_character_forge = [
+    "data/*.json",
+    "static/**/*",
+    "templates/**/*",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+exclude = ["tests*", "docs*", "examples*", "*__pycache__*"]
+
+[tool.black]
+line-length = 100
+target-version = ["py312"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = [
+    "N806",
+    "F841",
+]
+
+[tool.mypy]
+python_version = "3.12"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

@@ -1,0 +1,6 @@
+include README.md
+include CHANGELOG.md
+include LICENSE
+recursive-include src/pipeworks_character_forge/data *.json
+recursive-include src/pipeworks_character_forge/static *
+recursive-include src/pipeworks_character_forge/templates *
