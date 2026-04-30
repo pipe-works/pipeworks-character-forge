@@ -178,9 +178,12 @@ body {
   color: var(--col-text-muted);
 }
 
+/* Numeric run params (seed / steps / guidance) — stack vertically in the
+   sticky source panel; the 320px column is too narrow to fit three
+   labelled inputs side-by-side without truncating labels. */
 .forge-field-row {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  display: flex;
+  flex-direction: column;
   gap: var(--sp-2);
 }
 
