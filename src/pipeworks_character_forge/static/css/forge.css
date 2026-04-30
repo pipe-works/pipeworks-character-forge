@@ -4,6 +4,18 @@
    .btn, .badge, .input, .status-bar) is consumed via class names from
    the base; this file only defines what is unique to the forge. */
 
+/* ── Reset overrides ─────────────────────────────────────────────────────── */
+
+/* pipe-works-base.css resets img/picture/video to `display: block`, which has
+   the same specificity as the UA's `[hidden] { display: none }` and wins
+   because author CSS beats UA CSS at the same specificity. Bump the
+   `[hidden]` rule with !important so img.hidden, source-preview[hidden],
+   and tile-image[hidden] actually hide. Without this, every initially-
+   hidden tile image renders as broken-image alt text. */
+[hidden] {
+  display: none !important;
+}
+
 /* ── App shell layout ────────────────────────────────────────────────────── */
 
 html,
