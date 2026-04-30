@@ -8,7 +8,7 @@ training, by chaining image-to-image runs through
 
 ## Pipeline
 
-```
+```text
 source.png
     │
     ▼  prompt: "Create an image of this exact character in this style."

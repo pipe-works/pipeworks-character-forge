@@ -53,7 +53,7 @@ def load_catalog() -> SlotCatalog:
     """Read and validate the slot catalog from disk. Cached for the process."""
     path = _slots_path()
     raw = json.loads(path.read_text(encoding="utf-8"))
-    catalog = SlotCatalog.model_validate(raw)
+    catalog: SlotCatalog = SlotCatalog.model_validate(raw)
     _validate_invariants(catalog)
     return catalog
 

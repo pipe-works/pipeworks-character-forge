@@ -83,6 +83,25 @@ warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = false
 
+[tool.bandit]
+skips = [
+    "B311",  # random.randint used for seed generation, not cryptographic
+    "B104",  # 0.0.0.0 default bind address (we override to 127.0.0.1)
+]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"
+
+[tool.coverage.run]
+source = ["pipeworks_character_forge"]
+branch = true
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "if __name__ == .__main__.:",
+    "raise NotImplementedError",
+]
+show_missing = true
+skip_covered = false

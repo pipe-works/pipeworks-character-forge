@@ -1,0 +1,23 @@
+name: Release Please
+
+on:
+  push:
+    branches:
+    - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+  actions: write
+  statuses: write
+
+jobs:
+  release:
+    uses: pipe-works/.github/.github/workflows/reusable-release-please.yml@main
+    with:
+      release-type: python
+      package-name: pipeworks-character-forge
+      bump-minor-pre-major: true
+      bump-patch-for-minor-pre-major: false
+    secrets: inherit
