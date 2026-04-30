@@ -32,6 +32,7 @@ repos:
   - id: debug-statements
   - id: name-tests-test
     args: [--pytest-test-first]
+    exclude: ^tests/(_fakes|conftest)\.py$
 
   # Python code formatting with Black
   # IMPORTANT: Version pinned org-wide to prevent formatting drift

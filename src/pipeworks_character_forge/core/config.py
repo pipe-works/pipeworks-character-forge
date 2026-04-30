@@ -42,8 +42,6 @@ class PipeworksForgeConfig(BaseSettings):
 
     default_steps: int = 28
     default_guidance: float = 4.5
-    default_i2i_strength_base: float = 0.85
-    default_i2i_strength_branch: float = 0.6
 
     enable_attention_slicing: bool = True
     enable_model_cpu_offload: bool = False

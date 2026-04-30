@@ -30,4 +30,3 @@ ignore:
 - examples/
 - docs/
 - '**/app.js'
-- '**/main.py'    # uvicorn entrypoint, exercised by integration only
