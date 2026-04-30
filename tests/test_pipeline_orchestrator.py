@@ -200,6 +200,41 @@ class TestRegenerateSlot:
         assert "Linocut" not in text
         assert text.startswith("trgr,")
 
+    def test_cancel_between_slots_marks_run_cancelled_and_preserves_partials(
+        self, orchestrator, runs_dir
+    ):
+        run_id = _seed_run(orchestrator)
+
+        # Wrap the manager so we cancel after the 3rd i2i call.
+        original_i2i = orchestrator.manager.i2i
+        call_count = {"n": 0}
+
+        def cancel_after_third(*args, **kwargs):
+            result = original_i2i(*args, **kwargs)
+            call_count["n"] += 1
+            if call_count["n"] == 3:
+                manifest = orchestrator.run_store.load(run_id)
+                manifest.cancel_requested = True
+                orchestrator.run_store.save(manifest)
+            return result
+
+        orchestrator.manager.i2i = cancel_after_third  # type: ignore[method-assign]
+
+        orchestrator.run_full(run_id)
+
+        manifest = orchestrator.run_store.load(run_id)
+        assert manifest.status == "cancelled"
+        assert manifest.cancel_requested is False  # cleared on finalize
+
+        done = [s for s in manifest.slots.values() if s.status == "done"]
+        pending = [s for s in manifest.slots.values() if s.status == "pending"]
+        assert len(done) == 3
+        assert len(pending) == len(manifest.slots) - 3
+
+        # Done slots' PNGs stayed on disk.
+        for slot_state in done:
+            assert (runs_dir / run_id / slot_state.image).is_file()
+
     def test_regen_uses_stylized_base_as_reference_for_leaves(self, orchestrator):
         """Every leaf regen reads <run>/00_stylized_base.png, not the source."""
         run_id = _seed_run(orchestrator)

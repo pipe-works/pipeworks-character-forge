@@ -22,7 +22,7 @@ from pydantic import BaseModel, Field
 from pipeworks_character_forge.api.services.slot_catalog import SlotCatalog
 
 SlotStatus = Literal["pending", "running", "done", "failed"]
-RunStatus = Literal["pending", "running", "done", "failed"]
+RunStatus = Literal["pending", "running", "done", "failed", "cancelled"]
 
 
 def _now_iso() -> str:
@@ -65,6 +65,12 @@ class RunManifest(BaseModel):
     style_prefix: str | None = None
     params: RunParams = Field(default_factory=RunParams)
     status: RunStatus = "pending"
+    # Best-effort cancellation flag. The HTTP cancel endpoint sets this
+    # to True; the orchestrator checks it between slots and bails out if
+    # set, marking the run `cancelled`. The currently-running i2i call
+    # cannot be interrupted (~52 s on the 5090 with cpu_offload), so
+    # cancellation is best-effort, not immediate.
+    cancel_requested: bool = False
     error: str | None = None
     slots: dict[str, SlotState] = Field(default_factory=dict)
     created_at: str

@@ -201,6 +201,37 @@ class TestListRuns:
         assert run_b in ids
 
 
+class TestCancelRun:
+    def test_cancel_sets_flag_on_running_manifest(self, client, runs_dir):
+        source_id = _upload_source(client)
+        run_id = client.post("/api/runs", json={"source_id": source_id}).json()["run_id"]
+
+        # Synchronous queue ran the chain to completion; flip the
+        # manifest back to "running" so we can exercise the cancel
+        # endpoint's success path.
+        manifest = client.run_store.load(run_id)
+        manifest.status = "running"
+        client.run_store.save(manifest)
+
+        response = client.post(f"/api/runs/{run_id}/cancel")
+        assert response.status_code == 202
+        assert response.json()["status"] == "cancel_requested"
+
+        manifest = client.run_store.load(run_id)
+        assert manifest.cancel_requested is True
+
+    def test_cancel_unknown_run_returns_404(self, client):
+        response = client.post("/api/runs/does-not-exist/cancel")
+        assert response.status_code == 404
+
+    def test_cancel_done_run_returns_409(self, client):
+        source_id = _upload_source(client)
+        run_id = client.post("/api/runs", json={"source_id": source_id}).json()["run_id"]
+        # Synchronous queue means this run is already 'done'.
+        response = client.post(f"/api/runs/{run_id}/cancel")
+        assert response.status_code == 409
+
+
 class TestRegenerateSlot:
     def test_regenerates_one_slot_with_optional_prompt_override(self, client):
         source_id = _upload_source(client)

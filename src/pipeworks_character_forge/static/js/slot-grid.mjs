@@ -81,5 +81,19 @@ export function createSlotGrid(rootEl, catalog) {
     return overrides;
   }
 
-  return { setRunId, applyManifest, collectPromptOverrides };
+  function resetVisuals() {
+    // Wipe every tile back to its blank/pending appearance: drop the
+    // image, hide the seed pill, clear errors, set status pill to
+    // "pending". Used after a cancel so the gallery stops showing
+    // half-rendered state from the cancelled run.
+    for (const tile of tilesById.values()) {
+      tile.update(
+        { status: "pending", image: null, seed_used: null, error: null },
+        { runId: null },
+      );
+      tile.setRunId(null);
+    }
+  }
+
+  return { setRunId, applyManifest, collectPromptOverrides, resetVisuals };
 }

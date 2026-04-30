@@ -1,8 +1,13 @@
 // Left-column controls: source upload, params, trigger word, generate-all.
 
-import { createRun, exportDataset, uploadSourceImage } from "./run-client.mjs";
+import {
+  cancelRun,
+  createRun,
+  exportDataset,
+  uploadSourceImage,
+} from "./run-client.mjs";
 
-export function createSourcePanel({ slotGrid, onRunStart }) {
+export function createSourcePanel({ slotGrid, onRunStart, onRunCancelled }) {
   const $drop = document.getElementById("source-drop");
   const $file = document.getElementById("source-file");
   const $empty = document.getElementById("source-empty");
@@ -17,6 +22,7 @@ export function createSourcePanel({ slotGrid, onRunStart }) {
   const $guidance = document.getElementById("guidance");
 
   const $generate = document.getElementById("generate-all");
+  const $cancel = document.getElementById("cancel-run");
   const $createDataset = document.getElementById("create-dataset");
   const $queueStatus = document.getElementById("queue-status");
   const $runError = document.getElementById("run-error");
@@ -101,6 +107,22 @@ export function createSourcePanel({ slotGrid, onRunStart }) {
     }
   });
 
+  // ---- Cancel run ------------------------------------------------------
+
+  $cancel.addEventListener("click", async () => {
+    if (!_runId || $cancel.disabled) return;
+    $cancel.disabled = true;
+    $cancel.textContent = "Cancelling…";
+    try {
+      await cancelRun(_runId);
+      $queueStatus.textContent = "Cancel requested. Run stops after the current slot.";
+    } catch (error) {
+      _showError(error.message ?? String(error));
+      $cancel.disabled = false;
+      $cancel.textContent = "Cancel run";
+    }
+  });
+
   // ---- Create dataset --------------------------------------------------
 
   $createDataset.addEventListener("click", async () => {
@@ -150,6 +172,14 @@ export function createSourcePanel({ slotGrid, onRunStart }) {
     }
     if (runIdEl) runIdEl.textContent = manifest.run_id;
 
+    // Cancel button is visible+enabled iff the run is actively running.
+    const isRunning = manifest.status === "running";
+    $cancel.hidden = !isRunning;
+    $cancel.disabled = !isRunning || manifest.cancel_requested === true;
+    if (!isRunning || manifest.cancel_requested !== true) {
+      $cancel.textContent = "Cancel run";
+    }
+
     if (manifest.status === "done") {
       $queueStatus.textContent = "Run complete.";
       $createDataset.disabled = false;
@@ -158,9 +188,13 @@ export function createSourcePanel({ slotGrid, onRunStart }) {
       const doneSlots = Object.values(manifest.slots).filter(
         (s) => s.status === "done",
       ).length;
-      $queueStatus.textContent = `Generating… ${doneSlots} / ${totalSlots} slots done.`;
+      const tail = manifest.cancel_requested ? " (cancel pending)" : "";
+      $queueStatus.textContent = `Generating… ${doneSlots} / ${totalSlots} slots done.${tail}`;
     } else if (manifest.status === "failed") {
       _showError(manifest.error ?? "Run failed.");
+    } else if (manifest.status === "cancelled") {
+      $queueStatus.textContent = "Run cancelled. Partial outputs preserved on disk.";
+      onRunCancelled?.(manifest.run_id);
     }
   }
 

@@ -103,6 +103,37 @@ def list_runs(
     return {"run_ids": orchestrator.run_store.list_run_ids()}
 
 
+@router.post("/api/runs/{run_id}/cancel", status_code=202)
+def cancel_run(
+    run_id: str,
+    orchestrator: Annotated[PipelineOrchestrator, Depends(get_orchestrator)],
+) -> dict[str, str]:
+    """Best-effort cancellation.
+
+    Flips the cancel flag on the manifest. The orchestrator checks it
+    between slots; the currently-running i2i call (~52 s on the 5090)
+    cannot be interrupted and finishes naturally. Returns 409 if the
+    run is not currently in `running` state — there is nothing to
+    cancel for `done` / `failed` / already-`cancelled` runs.
+    """
+    if not orchestrator.run_store.exists(run_id):
+        raise HTTPException(status_code=404, detail=f"Unknown run_id: {run_id}")
+
+    manifest = orchestrator.run_store.load(run_id)
+    if manifest.status != "running":
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                f"Cannot cancel run {run_id}: status is {manifest.status!r}; "
+                "only 'running' runs can be cancelled."
+            ),
+        )
+
+    manifest.cancel_requested = True
+    orchestrator.run_store.save(manifest)
+    return {"run_id": run_id, "status": "cancel_requested"}
+
+
 @router.get("/api/runs/{run_id}")
 def get_run(
     run_id: str,

@@ -57,6 +57,16 @@ async function main() {
       activePoller = new ProgressPoller(runId);
       activePoller.start();
     },
+    onRunCancelled() {
+      // Run reached `cancelled`: stop polling and reset every tile to
+      // its blank state so the gallery doesn't keep showing half of
+      // the cancelled run. PNGs stay on disk for inspection.
+      if (activePoller) {
+        activePoller.stop();
+        activePoller = null;
+      }
+      slotGrid.resetVisuals();
+    },
   });
 
   window.addEventListener("forge:manifest", (event) => {

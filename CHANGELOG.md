@@ -6,6 +6,19 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- **Cancel run** — best-effort mid-run cancellation. New
+  `POST /api/runs/{run_id}/cancel` endpoint flips a flag the
+  orchestrator polls between slots; the in-flight i2i call (~52 s)
+  cannot be interrupted and finishes naturally, but no further slots
+  start. Run status transitions to `cancelled`; slots that already
+  produced PNGs keep their files on disk for inspection. Frontend
+  exposes a Cancel button that's only visible while the run is
+  `running`; on cancel, the gallery resets to the blank/pending
+  state and the partial outputs remain available under
+  `runs/<run_id>/`.
+- Race-safe manifest saves: the orchestrator now reads `cancel_requested`
+  from disk before every save so an external HTTP cancel cannot be
+  clobbered by a subsequent slot save mid-chain.
 - **Style prefix** — optional global text prepended to every slot's
   prompt at generation time. Locks visual identity across all 26
   outputs against scene prompts that describe photographic lighting
