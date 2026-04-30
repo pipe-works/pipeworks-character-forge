@@ -7,6 +7,10 @@ Wants=network-online.target
 Type=simple
 User=pipeworks
 Group=pipeworks
+# UMask=0002 makes runtime dirs (runs/<run-id>/, dataset/, …) group-writable
+# so any operator in the pipeworks group can run `pw-forge make-dataset`,
+# tar up a run, or hand-edit captions without sudo.
+UMask=0002
 WorkingDirectory=/srv/work/pipeworks/repos/pipeworks-character-forge
 Environment=PYTHONUNBUFFERED=1
 EnvironmentFile=/etc/pipeworks/character-forge/character-forge.env

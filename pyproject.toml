@@ -44,7 +44,7 @@ Repository = "https://github.com/pipe-works/pipeworks-character-forge.git"
 Issues = "https://github.com/pipe-works/pipeworks-character-forge/issues"
 
 [project.scripts]
-pw-forge = "pipeworks_character_forge.api.main:main"
+pw-forge = "pipeworks_character_forge.cli:main"
 
 [tool.setuptools]
 include-package-data = true

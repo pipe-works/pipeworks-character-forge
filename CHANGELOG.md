@@ -6,6 +6,18 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- `pw-forge make-dataset <run-id>` console subcommand. Copies the 25
+  leaf `NN_<slot>.png` + `NN_<slot>.txt` pairs from a completed run
+  into `<run-dir>/dataset/` (excluding `source.png`, `manifest.json`,
+  and the intermediate `00_stylized_base.*`) so ai-toolkit can read
+  the directory directly. Supports `--output-dir` to redirect, and
+  `--force` to overwrite an existing dataset folder. Refuses with a
+  non-zero exit code if the run is unknown, incomplete, or the target
+  exists without `--force`. Warns on stderr when `trigger_word` is
+  empty so the operator knows captions will not carry a LoRA prefix.
+- `pw-forge` is now an argparse dispatch with two subcommands:
+  `serve` (default — runs the FastAPI server, so the systemd
+  `ExecStart=pw-forge` keeps working unchanged) and `make-dataset`.
 - Frontend: vanilla ES modules + plain HTML, no build step. Left
   panel handles source upload + run params + trigger word + the
   Generate-all button; main pane is the 26-tile gallery (promoted
