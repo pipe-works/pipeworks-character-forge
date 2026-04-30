@@ -76,6 +76,21 @@ body {
   color: #fff;
 }
 
+.forge-run-state[data-state="cancelled"] {
+  background: var(--col-text-muted);
+  color: var(--col-bg);
+}
+
+.forge-btn-danger {
+  border-color: var(--col-err);
+  color: var(--col-err);
+}
+
+.forge-btn-danger:hover:not(:disabled) {
+  background: var(--col-err);
+  color: #fff;
+}
+
 /* ── Two-column main layout ──────────────────────────────────────────────── */
 
 .app-main.forge-layout {

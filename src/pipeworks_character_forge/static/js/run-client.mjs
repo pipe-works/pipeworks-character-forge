@@ -61,6 +61,17 @@ export async function createRun({
   return response.json();
 }
 
+export async function cancelRun(runId) {
+  const response = await fetch(
+    `/api/runs/${encodeURIComponent(runId)}/cancel`,
+    { method: "POST" },
+  );
+  if (!response.ok) {
+    throw new Error(`Cancel failed: ${await _readError(response)}`);
+  }
+  return response.json();
+}
+
 export async function exportDataset(runId) {
   const response = await fetch(
     `/api/runs/${encodeURIComponent(runId)}/dataset`,

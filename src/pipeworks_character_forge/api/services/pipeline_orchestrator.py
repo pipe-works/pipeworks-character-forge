@@ -50,24 +50,76 @@ class PipelineOrchestrator:
     # -- public chain entry points -----------------------------------------
 
     def run_full(self, run_id: str) -> None:
-        """Generate the stylized base + all 25 leaves, in display order."""
+        """Generate the stylized base + all 25 leaves, in display order.
+
+        Honors :attr:`RunManifest.cancel_requested` between slots: an
+        operator-issued cancel flips the flag, and the next inter-slot
+        check exits the loop, marking the run ``cancelled``. Whatever
+        slots already produced PNGs stay on disk; remaining slots are
+        rolled back to ``pending`` so the manifest reads cleanly.
+        """
         manifest = self.run_store.load(run_id)
         manifest.status = "running"
         manifest.error = None
+        manifest.cancel_requested = False
         self.run_store.save(manifest)
 
         try:
             self._generate_slot(manifest, self.catalog.intermediate.id)
+            if self._was_cancelled(manifest.run_id):
+                self._finalize_cancelled(manifest.run_id)
+                return
+
             for slot in sorted(self.catalog.slots, key=lambda s: s.order):
+                if self._was_cancelled(manifest.run_id):
+                    self._finalize_cancelled(manifest.run_id)
+                    return
                 self._generate_slot(manifest, slot.id)
+
             manifest.status = "done"
         except Exception as exc:
             manifest.status = "failed"
             manifest.error = str(exc)
-            self.run_store.save(manifest)
+            self._save_preserving_cancel_flag(manifest)
             raise
         else:
-            self.run_store.save(manifest)
+            self._save_preserving_cancel_flag(manifest)
+
+    def _save_preserving_cancel_flag(self, manifest: RunManifest) -> None:
+        """Save without clobbering the cancel flag set by an external actor.
+
+        The HTTP cancel endpoint flips ``cancel_requested`` on disk while
+        the orchestrator is mid-slot. The orchestrator's own
+        ``run_store.save(manifest)`` would overwrite that with whatever
+        the in-memory ``manifest.cancel_requested`` was at the start of
+        the slot — which loses the cancel. Re-read the field from disk
+        before saving so externally-issued cancels survive.
+        """
+        if self.run_store.exists(manifest.run_id):
+            on_disk = self.run_store.load(manifest.run_id)
+            manifest.cancel_requested = on_disk.cancel_requested
+        self.run_store.save(manifest)
+
+    def _was_cancelled(self, run_id: str) -> bool:
+        """Re-read the manifest from disk to pick up the cancel flag."""
+        return self.run_store.load(run_id).cancel_requested
+
+    def _finalize_cancelled(self, run_id: str) -> None:
+        """Persist the cancelled state.
+
+        Slots that already finished keep their `done` status and PNG +
+        caption files stay on disk. Slots that were `running` or
+        `pending` are reset to `pending` so the manifest doesn't lie.
+        """
+        manifest = self.run_store.load(run_id)
+        manifest.status = "cancelled"
+        manifest.cancel_requested = False
+        for slot_state in manifest.slots.values():
+            if slot_state.status == "running":
+                slot_state.status = "pending"
+                slot_state.error = None
+        self.run_store.save(manifest)
+        logger.info("Run %s cancelled", run_id)
 
     def regenerate_slot(self, run_id: str, slot_id: str) -> None:
         """Re-run one slot. Intermediate or leaf; bumps regen_count.
@@ -109,7 +161,7 @@ class PipelineOrchestrator:
         slot_state = manifest.slots[slot_id]
         slot_state.status = "running"
         slot_state.error = None
-        self.run_store.save(manifest)
+        self._save_preserving_cancel_flag(manifest)
 
         rd = self.run_store.run_dir(manifest.run_id)
         ref_path = self._reference_path_for(manifest, slot_id, rd)
@@ -130,7 +182,7 @@ class PipelineOrchestrator:
         except Exception as exc:
             slot_state.status = "failed"
             slot_state.error = str(exc)
-            self.run_store.save(manifest)
+            self._save_preserving_cancel_flag(manifest)
             raise
 
         prefix = f"{order:02d}"
@@ -148,7 +200,7 @@ class PipelineOrchestrator:
             slot_state.caption = caption_filename
 
         slot_state.status = "done"
-        self.run_store.save(manifest)
+        self._save_preserving_cancel_flag(manifest)
 
     # -- helpers -----------------------------------------------------------
 
