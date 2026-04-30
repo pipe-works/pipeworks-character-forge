@@ -1,0 +1,53 @@
+/* Forge layout — placeholder. Real styles land in PR 4. */
+
+:root {
+  --forge-bg: #111;
+  --forge-fg: #eee;
+  --forge-muted: #888;
+  --forge-accent: #d8b46a;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--forge-bg);
+  color: var(--forge-fg);
+  font-family:
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
+  line-height: 1.5;
+}
+
+.forge-header {
+  padding: 2rem 2rem 1rem;
+  border-bottom: 1px solid #222;
+}
+
+.forge-header h1 {
+  margin: 0;
+  font-size: 1.75rem;
+  color: var(--forge-accent);
+}
+
+.forge-tagline {
+  margin: 0.25rem 0 0;
+  color: var(--forge-muted);
+}
+
+.forge-skeleton {
+  padding: 2rem;
+  max-width: 60ch;
+}
+
+.forge-skeleton a {
+  color: var(--forge-accent);
+}

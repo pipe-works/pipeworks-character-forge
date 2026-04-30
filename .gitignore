@@ -1,0 +1,50 @@
+# Byte-compiled
+__pycache__/
+*.py[codz]
+*$py.class
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+*.egg
+
+# Virtual envs
+.venv/
+venv/
+ENV/
+
+# Environment files (real secrets — examples are kept)
+.env
+.envrc
+!deploy/env/character-forge.env.example
+
+# Test / coverage
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+.pytest_cache/
+
+# Type checkers
+.mypy_cache/
+.ruff_cache/
+
+# Editors
+.idea/
+.vscode/
+
+# OS
+.DS_Store
+
+# ML model weights (large; cached under models/)
+models/
+*.pt
+*.pth
+*.bin
+*.safetensors
+*.ckpt
+
+# Generated runs
+runs/
+!runs/.gitkeep

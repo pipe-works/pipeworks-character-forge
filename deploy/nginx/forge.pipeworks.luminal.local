@@ -1,0 +1,32 @@
+server {
+    listen 80;
+    server_name forge.pipeworks.luminal.local;
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl;
+    server_name forge.pipeworks.luminal.local;
+
+    ssl_certificate     /etc/nginx/certs/forge.pipeworks.luminal.local.pem;
+    ssl_certificate_key /etc/nginx/certs/forge.pipeworks.luminal.local-key.pem;
+
+    access_log /var/log/nginx/forge.pipeworks.luminal.local.access.log;
+    error_log  /var/log/nginx/forge.pipeworks.luminal.local.error.log;
+
+    include /etc/nginx/snippets/security-headers.conf;
+    include /etc/nginx/snippets/proxy-common.conf;
+    include /etc/nginx/snippets/proxy-timeouts.conf;
+
+    client_max_body_size 25m;
+
+    location / {
+        proxy_pass http://127.0.0.1:8410;
+    }
+
+    location /api/runs/ {
+        proxy_pass http://127.0.0.1:8410;
+        proxy_buffering off;
+        proxy_read_timeout 1h;
+    }
+}
