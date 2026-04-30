@@ -59,6 +59,13 @@ class _SynchronousJobQueue:
         finally:
             self._depth -= 1
 
+    def enqueue_cascade(self, run_id: str) -> None:
+        self._depth += 1
+        try:
+            self._orchestrator.cascade_from_base(run_id)
+        finally:
+            self._depth -= 1
+
     def depth(self) -> int:
         return self._depth
 
@@ -199,6 +206,32 @@ class TestListRuns:
         ids = response.json()["run_ids"]
         assert run_a in ids
         assert run_b in ids
+
+
+class TestCascadeRun:
+    def test_cascade_reruns_full_chain_on_existing_run(self, client):
+        source_id = _upload_source(client)
+        run_id = client.post("/api/runs", json={"source_id": source_id}).json()["run_id"]
+        baseline_calls = len(client.fake_manager.calls)
+
+        response = client.post(f"/api/runs/{run_id}/cascade")
+        assert response.status_code == 202
+        # Synchronous queue ran the cascade inline; expect 26 fresh calls.
+        assert len(client.fake_manager.calls) == baseline_calls + 26
+
+    def test_cascade_unknown_run_returns_404(self, client):
+        response = client.post("/api/runs/does-not-exist/cascade")
+        assert response.status_code == 404
+
+    def test_cascade_running_run_returns_409(self, client):
+        source_id = _upload_source(client)
+        run_id = client.post("/api/runs", json={"source_id": source_id}).json()["run_id"]
+        # Manually flip status back to running and try to cascade.
+        manifest = client.run_store.load(run_id)
+        manifest.status = "running"
+        client.run_store.save(manifest)
+        response = client.post(f"/api/runs/{run_id}/cascade")
+        assert response.status_code == 409
 
 
 class TestPatchSlot:

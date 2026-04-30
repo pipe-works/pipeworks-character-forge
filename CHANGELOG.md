@@ -6,6 +6,25 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- **Batch regenerate** — per-tile select checkbox in the tile header.
+  Ticking ≥1 tile flips the *Generate all 25* button to *Regenerate
+  selected (N)*; clicking it queues N regenerates through the existing
+  `POST /api/runs/{id}/slots/{slot}/regenerate` endpoint, dispatched
+  one at a time by the GPU's FIFO worker. The selection clears once
+  queued so the next iteration starts clean.
+- **Stylized base cascade** — selecting *only* `stylized_base` shows
+  a confirm dialog ("Cascade — re-run base AND all 25 leaves" vs
+  "Just the base"). Cascade hits a new `POST /api/runs/{id}/cascade`
+  endpoint that re-runs the base + every leaf in display order while
+  preserving operator prompt edits and `excluded` flags. Without
+  cascade the base regenerates alone, leaving existing leaves
+  referencing the old base on disk (operator's choice — useful for
+  iterating on the base look without losing curated leaves).
+- New orchestrator method `cascade_from_base(run_id)` and matching
+  `JobQueue.enqueue_cascade(run_id)`. The cascade bumps `regen_count`
+  on every slot deterministically so seeds shift and the leaves
+  follow the new latent space rather than colliding with the previous
+  run's seeds.
 - **Exclude from dataset** — per-slot toggle to curate drifted leaves
   out of the LoRA training set without deleting them from disk.
   - `SlotState` gains `excluded: bool = False`.

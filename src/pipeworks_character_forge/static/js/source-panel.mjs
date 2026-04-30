@@ -2,8 +2,10 @@
 
 import {
   cancelRun,
+  cascadeRun,
   createRun,
   exportDataset,
+  regenerateSlot,
   uploadSourceImage,
 } from "./run-client.mjs";
 
@@ -30,6 +32,7 @@ export function createSourcePanel({ slotGrid, onRunStart, onRunCancelled }) {
   let _sourceId = null;
   let _runId = null;
   let _busy = false;
+  let _selectedSlotIds = [];
 
   // ---- Drag-and-drop ---------------------------------------------------
   //
@@ -84,7 +87,14 @@ export function createSourcePanel({ slotGrid, onRunStart, onRunCancelled }) {
   // ---- Generate all ----------------------------------------------------
 
   $generate.addEventListener("click", async () => {
-    if (!_sourceId || _busy) return;
+    if (_busy) return;
+    // Two distinct flows: full-chain (no selection) and batch-regen
+    // (≥1 selection). Selection-driven path requires an existing run.
+    if (_selectedSlotIds.length > 0 && _runId) {
+      await _runBatchRegenerate();
+      return;
+    }
+    if (!_sourceId) return;
     try {
       _setBusy(true, "Queuing run…");
       const slotOverrides = slotGrid.collectPromptOverrides();
@@ -106,6 +116,77 @@ export function createSourcePanel({ slotGrid, onRunStart, onRunCancelled }) {
       _showError(error.message ?? String(error));
     }
   });
+
+  // ---- Batch regenerate ------------------------------------------------
+
+  async function _runBatchRegenerate() {
+    const onlyBase =
+      _selectedSlotIds.length === 1 && _selectedSlotIds[0] === "stylized_base";
+
+    if (onlyBase) {
+      // Stylized base alone: ask about cascading. The base feeds every
+      // leaf, so regenerating it without cascading leaves the existing
+      // leaves referencing the previous base — usually not what the
+      // operator wants.
+      const choice = window.confirm(
+        "You selected only the stylized base.\n\n" +
+          "OK = Cascade — re-run the base AND all 25 leaves so everything " +
+          "stays consistent.\n" +
+          "Cancel = Just the base — the existing leaves will continue to " +
+          "reference the OLD base on disk.",
+      );
+      try {
+        _setBusy(true, choice ? "Cascading run…" : "Regenerating base…");
+        if (choice) {
+          await cascadeRun(_runId);
+        } else {
+          await regenerateSlot(_runId, "stylized_base");
+        }
+        _setBusy(false, choice ? "Cascade queued." : "Base regenerate queued.");
+        slotGrid.clearSelection();
+        $createDataset.disabled = true;
+      } catch (error) {
+        _setBusy(false, "");
+        _showError(error.message ?? String(error));
+      }
+      return;
+    }
+
+    // ≥1 slot, possibly including base + leaves. Queue them in display
+    // order; the backend FIFO worker dispatches one at a time.
+    try {
+      _setBusy(true, `Queuing ${_selectedSlotIds.length} regenerate(s)…`);
+      for (const slotId of _selectedSlotIds) {
+        await regenerateSlot(_runId, slotId);
+      }
+      _setBusy(false, `${_selectedSlotIds.length} regenerate(s) queued.`);
+      slotGrid.clearSelection();
+      $createDataset.disabled = true;
+    } catch (error) {
+      _setBusy(false, "");
+      _showError(error.message ?? String(error));
+    }
+  }
+
+  // Tile selection events bubble to the document; stash the latest
+  // selection set so the Generate button can flip mode without
+  // re-querying the DOM on every click.
+  document.addEventListener("forge:tile-selection-changed", () => {
+    _selectedSlotIds = slotGrid.getSelectedSlotIds();
+    _refreshGenerateButtonLabel();
+  });
+
+  function _refreshGenerateButtonLabel() {
+    const n = _selectedSlotIds.length;
+    if (n === 0) {
+      $generate.textContent = "Generate all 25";
+      $generate.disabled = _busy || !_sourceId;
+    } else {
+      $generate.textContent = `Regenerate selected (${n})`;
+      // Batch regen needs an existing run.
+      $generate.disabled = _busy || !_runId;
+    }
+  }
 
   // ---- Cancel run ------------------------------------------------------
 
@@ -149,7 +230,7 @@ export function createSourcePanel({ slotGrid, onRunStart, onRunCancelled }) {
 
   function _setBusy(busy, status) {
     _busy = busy;
-    $generate.disabled = busy || !_sourceId;
+    _refreshGenerateButtonLabel();
     $queueStatus.textContent = status;
   }
 

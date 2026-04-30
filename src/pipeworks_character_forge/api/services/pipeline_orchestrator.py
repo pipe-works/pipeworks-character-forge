@@ -121,6 +121,46 @@ class PipelineOrchestrator:
         self.run_store.save(manifest)
         logger.info("Run %s cancelled", run_id)
 
+    def cascade_from_base(self, run_id: str) -> None:
+        """Re-run the stylized base then every leaf.
+
+        Same shape as :meth:`run_full` but does not reset the run's
+        slot defaults — keeps any operator prompt edits and `excluded`
+        flags intact. Used when the operator ticks the base alone in
+        the batch-regen UI and chooses to cascade.
+        """
+        manifest = self.run_store.load(run_id)
+        manifest.status = "running"
+        manifest.error = None
+        manifest.cancel_requested = False
+        # Bump the regen counter on every slot so seeds shift
+        # deterministically — the new base produces a different latent
+        # space, and we want the leaves to follow that lead rather than
+        # collide with the previous run's seeds.
+        for slot_state in manifest.slots.values():
+            slot_state.regen_count += 1
+            slot_state.error = None
+        self.run_store.save(manifest)
+
+        try:
+            self._generate_slot(manifest, self.catalog.intermediate.id)
+            if self._was_cancelled(manifest.run_id):
+                self._finalize_cancelled(manifest.run_id)
+                return
+            for slot in sorted(self.catalog.slots, key=lambda s: s.order):
+                if self._was_cancelled(manifest.run_id):
+                    self._finalize_cancelled(manifest.run_id)
+                    return
+                self._generate_slot(manifest, slot.id)
+            manifest.status = "done"
+        except Exception as exc:
+            manifest.status = "failed"
+            manifest.error = str(exc)
+            self._save_preserving_cancel_flag(manifest)
+            raise
+        else:
+            self._save_preserving_cancel_flag(manifest)
+
     def regenerate_slot(self, run_id: str, slot_id: str) -> None:
         """Re-run one slot. Intermediate or leaf; bumps regen_count.
 

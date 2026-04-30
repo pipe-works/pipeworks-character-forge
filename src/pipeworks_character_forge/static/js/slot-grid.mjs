@@ -93,6 +93,20 @@ export function createSlotGrid(rootEl, catalog) {
     return overrides;
   }
 
+  function getSelectedSlotIds() {
+    const selected = [];
+    for (const [slotId, tile] of tilesById.entries()) {
+      if (tile.isSelected()) selected.push(slotId);
+    }
+    return selected;
+  }
+
+  function clearSelection() {
+    for (const tile of tilesById.values()) {
+      tile.setSelected(false);
+    }
+  }
+
   function resetVisuals() {
     // Wipe every tile back to its blank/pending appearance: drop the
     // image, hide the seed pill, clear errors, set status pill to
@@ -107,5 +121,12 @@ export function createSlotGrid(rootEl, catalog) {
     }
   }
 
-  return { setRunId, applyManifest, collectPromptOverrides, resetVisuals };
+  return {
+    setRunId,
+    applyManifest,
+    collectPromptOverrides,
+    getSelectedSlotIds,
+    clearSelection,
+    resetVisuals,
+  };
 }

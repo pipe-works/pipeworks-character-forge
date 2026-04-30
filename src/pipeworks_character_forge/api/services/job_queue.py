@@ -33,7 +33,12 @@ class _RegenJob:
     slot_id: str
 
 
-_Job = _FullRunJob | _RegenJob
+@dataclass(frozen=True)
+class _CascadeJob:
+    run_id: str
+
+
+_Job = _FullRunJob | _RegenJob | _CascadeJob
 
 
 class JobQueue:
@@ -73,6 +78,9 @@ class JobQueue:
     def enqueue_regenerate(self, run_id: str, slot_id: str) -> None:
         self._queue.put(_RegenJob(run_id=run_id, slot_id=slot_id))
 
+    def enqueue_cascade(self, run_id: str) -> None:
+        self._queue.put(_CascadeJob(run_id=run_id))
+
     # -- introspection -----------------------------------------------------
 
     def depth(self) -> int:
@@ -104,6 +112,8 @@ class JobQueue:
                     self._orchestrator.run_full(job.run_id)
                 elif isinstance(job, _RegenJob):
                     self._orchestrator.regenerate_slot(job.run_id, job.slot_id)
+                elif isinstance(job, _CascadeJob):
+                    self._orchestrator.cascade_from_base(job.run_id)
             except BaseException as exc:  # noqa: BLE001 — log + continue
                 logger.exception("Job failed: %r", job)
                 error = exc
