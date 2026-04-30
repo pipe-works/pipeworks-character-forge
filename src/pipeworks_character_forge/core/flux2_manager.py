@@ -46,24 +46,39 @@ class Flux2KleinManager:
 
         dtype = getattr(torch, self.config.torch_dtype)
         logger.info(
-            "Loading FLUX.2-klein image-to-image pipeline: %s (dtype=%s, device=%s)",
+            "Loading FLUX.2-klein image-to-image pipeline: %s "
+            "(dtype=%s, device=%s, cpu_offload=%s)",
             self.config.flux2_model_id,
             self.config.torch_dtype,
             self.config.device,
+            self.config.enable_model_cpu_offload,
         )
 
         self.config.models_dir.mkdir(parents=True, exist_ok=True)
-        pipeline = AutoPipelineForImage2Image.from_pretrained(
-            self.config.flux2_model_id,
-            torch_dtype=dtype,
-            cache_dir=str(self.config.models_dir),
-        )
-        pipeline = pipeline.to(self.config.device)
+
+        if self.config.enable_model_cpu_offload:
+            # Load on CPU, then let accelerate stream modules to the GPU
+            # on demand. Lower VRAM ceiling, higher per-step latency.
+            pipeline = AutoPipelineForImage2Image.from_pretrained(
+                self.config.flux2_model_id,
+                torch_dtype=dtype,
+                cache_dir=str(self.config.models_dir),
+            )
+            pipeline.enable_model_cpu_offload()
+        else:
+            # Place weights directly on the device via accelerate's
+            # device_map. Avoids the transient CPU+GPU double-allocation
+            # of ``pipeline.to(device)`` that OOMs the 5090 on the 9B
+            # model even though the resident model fits.
+            pipeline = AutoPipelineForImage2Image.from_pretrained(
+                self.config.flux2_model_id,
+                torch_dtype=dtype,
+                cache_dir=str(self.config.models_dir),
+                device_map=self.config.device,
+            )
 
         if self.config.enable_attention_slicing:
             pipeline.enable_attention_slicing()
-        if self.config.enable_model_cpu_offload:
-            pipeline.enable_model_cpu_offload()
 
         self.pipeline = pipeline
         logger.info("FLUX.2-klein pipeline ready")
