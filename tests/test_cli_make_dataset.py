@@ -85,9 +85,7 @@ class TestMakeDatasetHappyPath:
 
         cli_main(["make-dataset", run_id])
 
-        text = (runs_dir / run_id / "dataset" / "01_turnaround.txt").read_text(
-            encoding="utf-8"
-        )
+        text = (runs_dir / run_id / "dataset" / "01_turnaround.txt").read_text(encoding="utf-8")
         assert text.startswith("myc,")
 
 

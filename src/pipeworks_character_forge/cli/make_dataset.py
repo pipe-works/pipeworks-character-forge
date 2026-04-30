@@ -99,8 +99,7 @@ def run_make_dataset(args: argparse.Namespace) -> int:
     print(f"Wrote {pairs_copied} image+caption pairs to {output_dir}")
     if skipped:
         print(
-            f"Skipped {len(skipped)} slot(s) with missing files: "
-            f"{', '.join(sorted(skipped))}",
+            f"Skipped {len(skipped)} slot(s) with missing files: " f"{', '.join(sorted(skipped))}",
             file=sys.stderr,
         )
 
