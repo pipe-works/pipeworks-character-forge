@@ -46,7 +46,7 @@ Runtime mutable state lives **outside** the repo, mirroring the
 ## Hostname
 
 Runs at `https://forge.pipeworks.luminal.local` (proxy →
-`127.0.0.1:8410`). Single-user, single trust boundary, no auth.
+`127.0.0.1:8420`). Single-user, single trust boundary, no auth.
 
 ## Deploy on Luminal
 
@@ -72,7 +72,7 @@ The script:
 3. nginx vhost + reload.
 4. Env file install + `HF_TOKEN` validation.
 5. systemd link + `enable --now`.
-6. Health probe against `https://127.0.0.1:8410/api/health`.
+6. Health probe against `https://127.0.0.1:8420/api/health`.
 
 Manual follow-ups (script reminds at the end):
 

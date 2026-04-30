@@ -56,8 +56,20 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+- Backend port moved 8410 → **8420** to dodge a collision with
+  `pipeworks-pipeworks-org-author.service`, which is hard-coded to
+  `--port 8410` and was claiming the socket whenever character-forge
+  was restarting. Symptom on the operator side was nginx proxying to
+  the author service whenever forge crashed, plus a permanent
+  `address already in use` on systemd start. Updated:
+  `core/config.py` default, `deploy/env/character-forge.env.example`,
+  `deploy/nginx/forge.pipeworks.luminal.local`, `deploy/install.sh`
+  pre-flight `PORT`. Operators on existing deploys must additionally
+  edit the live `/etc/pipeworks/character-forge/character-forge.env`
+  to set `PIPEWORKS_FORGE_SERVER_PORT=8420` since `install.sh` does
+  not rewrite an existing env file.
 - `deploy/install.sh` health probe now hits the backend over plain HTTP
-  (`http://127.0.0.1:8410/api/health`) — previously used `https://`
+  (`http://127.0.0.1:8420/api/health`) — previously used `https://`
   which always failed because nginx terminates TLS upstream of the
   backend.
 - `deploy/install.sh` pre-flight now exec's the venv's python as the

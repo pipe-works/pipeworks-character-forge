@@ -17,7 +17,7 @@
 #      First install — exits with a reminder to edit HF_TOKEN.
 #      Subsequent runs — verifies HF_TOKEN is set before enabling the unit.
 #   5. systemd link + daemon-reload + enable --now.
-#   6. Health probe against https://127.0.0.1:8410/api/health.
+#   6. Health probe against https://127.0.0.1:8420/api/health.
 #
 # Manual follow-ups (script prints them at the end):
 #   - DrayTek LAN DNS: forge.pipeworks.luminal.local → 192.168.20.11
@@ -30,7 +30,7 @@ set -euo pipefail
 REPO=/srv/work/pipeworks/repos/pipeworks-character-forge
 VENV=/srv/work/pipeworks/venvs/pw-character-forge
 HOST=forge.pipeworks.luminal.local
-PORT=8410
+PORT=8420
 SERVICE=pipeworks-character-forge.service
 
 ENV_DIR=/etc/pipeworks/character-forge
