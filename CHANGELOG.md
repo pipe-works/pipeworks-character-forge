@@ -6,6 +6,33 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- **Style prefix** — optional global text prepended to every slot's
+  prompt at generation time. Locks visual identity across all 26
+  outputs against scene prompts that describe photographic lighting
+  setups (which otherwise pull FLUX.2-klein away from the source's
+  art style — observed on the spooky-castle / rainy-street scenes
+  during the linocut character run). Stored on the manifest so per-
+  tile regenerates pick it up. **Not** baked into captions: the
+  LoRA learns style from the images themselves; baking the prefix
+  into captions would force the trigger word to be used together
+  with the prefix at inference time.
+  - New `style_prefix` field on `RunManifest`.
+  - `POST /api/runs` accepts `style_prefix` in the body.
+  - `PipelineOrchestrator._compose_prompt` does the prepending.
+  - Frontend gets a "Style prefix" textarea in the source panel
+    with the linocut/sepia placeholder as a worked example.
+- **Create dataset button** — one-click HTTP equivalent of
+  `pw-forge make-dataset`:
+  - New `POST /api/runs/{run_id}/dataset` endpoint, backed by the
+    same `export_run_dataset` core function the CLI uses (extracted
+    from `cli/make_dataset.py` so behavior is identical between
+    SSH and one-click flows).
+  - Always overwrites any existing `dataset/` subdir.
+  - Frontend "Create dataset" button enabled once the run reaches
+    `done`; click → POST → status bar shows the path + pair count;
+    button briefly flips to "Dataset created ✓".
+  - Errors map to HTTP statuses: 404 unknown run, 409 incomplete or
+    output dir collision (with `force=False`).
 - Light/dark theme toggle in the app header. Persists to
   `localStorage` under the `pw-theme` key, matching
   `pipeworks-image-generator`'s convention so a user's preference

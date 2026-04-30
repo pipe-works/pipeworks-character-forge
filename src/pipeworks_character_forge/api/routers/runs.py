@@ -31,6 +31,7 @@ class CreateRunRequest(BaseModel):
 
     source_id: str
     trigger_word: str | None = None
+    style_prefix: str | None = None
     seed: int = 1234
     steps: int = Field(default=28, ge=1, le=200)
     guidance: float = Field(default=4.5, ge=0.0, le=20.0)
@@ -41,6 +42,13 @@ class CreateRunResponse(BaseModel):
     run_id: str
     status: str
     queue_depth: int
+
+
+class DatasetExportResponse(BaseModel):
+    run_id: str
+    path: str
+    pairs: int
+    skipped: list[str]
 
 
 def _make_run_id() -> str:
@@ -74,6 +82,7 @@ def create_run(
         run_id=run_id,
         source_path=source_path,
         trigger_word=body.trigger_word,
+        style_prefix=body.style_prefix,
         params=RunParams(seed=body.seed, steps=body.steps, guidance=body.guidance),
         catalog=catalog,
         slot_overrides=body.slot_overrides,
@@ -104,3 +113,43 @@ def get_run(
     manifest = orchestrator.run_store.load(run_id)
     payload: dict[str, object] = manifest.model_dump()
     return payload
+
+
+@router.post(
+    "/api/runs/{run_id}/dataset",
+    response_model=DatasetExportResponse,
+    status_code=201,
+)
+def export_dataset(
+    run_id: str,
+    orchestrator: Annotated[PipelineOrchestrator, Depends(get_orchestrator)],
+) -> DatasetExportResponse:
+    """HTTP wrapper around ``pw-forge make-dataset``.
+
+    Same logic, exposed so the frontend can offer a one-click
+    "Create dataset" button. Always overwrites any existing
+    ``dataset/`` subdir for the run.
+    """
+    # Local import — keeps the heavy CLI module out of the main API
+    # surface's import graph for cold-start latency.
+    from pipeworks_character_forge.cli.make_dataset import (
+        DatasetExportError,
+        export_run_dataset,
+    )
+
+    try:
+        result = export_run_dataset(
+            orchestrator.run_store,
+            run_id=run_id,
+            output_dir=None,
+            force=True,
+        )
+    except DatasetExportError as exc:
+        raise HTTPException(status_code=exc.status, detail=str(exc)) from exc
+
+    return DatasetExportResponse(
+        run_id=run_id,
+        path=str(result.output_dir),
+        pairs=result.pairs_copied,
+        skipped=result.skipped,
+    )
