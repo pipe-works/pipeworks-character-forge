@@ -1,8 +1,9 @@
 """FastAPI application for the PipeWorks Character Forge.
 
-PR 3 surface: catalog + health (PR 1), plus source-image upload and a
-throwaway ``/api/debug/i2i`` endpoint for proving the FLUX.2-klein
-pipeline on Luminal's GPU. The full 25-slot orchestrator lands in PR 4.
+PR 9 surface: catalog + health (PR 1), source upload + debug i2i
+(PR 4), and the full-chain orchestrator behind ``POST /api/runs`` +
+``POST /api/runs/{run_id}/slots/{slot_id}/regenerate`` + manifest
+polling. The frontend lands in PR 10.
 """
 
 from __future__ import annotations
@@ -18,8 +19,15 @@ from fastapi.staticfiles import StaticFiles
 
 from pipeworks_character_forge import __version__
 from pipeworks_character_forge.api.routers import debug as debug_router
+from pipeworks_character_forge.api.routers import runs as runs_router
+from pipeworks_character_forge.api.routers import slots as slots_router
 from pipeworks_character_forge.api.routers import source as source_router
 from pipeworks_character_forge.api.services import slot_catalog
+from pipeworks_character_forge.api.services.job_queue import JobQueue
+from pipeworks_character_forge.api.services.pipeline_orchestrator import (
+    PipelineOrchestrator,
+)
+from pipeworks_character_forge.api.services.run_store import RunStore
 from pipeworks_character_forge.core.config import config
 from pipeworks_character_forge.core.flux2_manager import Flux2KleinManager
 
@@ -28,19 +36,26 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-    """Construct the FLUX.2-klein manager on startup; release VRAM on shutdown.
-
-    Construction is cheap — the model is not loaded here. The first call
-    to :meth:`Flux2KleinManager.i2i` triggers the lazy load.
-    """
+    """Construct the manager + orchestrator + job queue on startup."""
     manager = Flux2KleinManager(config)
+    catalog = slot_catalog.load_catalog()
+    run_store = RunStore(config.runs_dir)
+    orchestrator = PipelineOrchestrator(manager=manager, run_store=run_store, catalog=catalog)
+    job_queue = JobQueue(orchestrator)
+    job_queue.start()
+
     app.state.manager = manager
-    logger.info("Lifespan start: manager constructed (model load is lazy)")
+    app.state.run_store = run_store
+    app.state.orchestrator = orchestrator
+    app.state.job_queue = job_queue
+
+    logger.info("Lifespan start: manager constructed (lazy load); job queue worker running")
     try:
         yield
     finally:
+        job_queue.stop()
         manager.unload()
-        logger.info("Lifespan end: manager unloaded")
+        logger.info("Lifespan end: manager unloaded; job queue stopped")
 
 
 def create_app() -> FastAPI:
@@ -58,8 +73,19 @@ def create_app() -> FastAPI:
         name="static",
     )
 
+    # Generated images live under <runs_dir>/<run_id>/NN_<slot>.png. The
+    # frontend constructs URLs of the form /runs/<run_id>/<filename>.
+    config.runs_dir.mkdir(parents=True, exist_ok=True)
+    app.mount(
+        "/runs",
+        StaticFiles(directory=str(config.runs_dir)),
+        name="runs",
+    )
+
     app.include_router(source_router.router)
     app.include_router(debug_router.router)
+    app.include_router(runs_router.router)
+    app.include_router(slots_router.router)
 
     @app.get("/api/health")
     def health() -> dict[str, str]:
