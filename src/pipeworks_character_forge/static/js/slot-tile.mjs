@@ -41,9 +41,8 @@ export function createSlotTile(slotDef, { promoted = false } = {}) {
       <input
         type="checkbox"
         class="forge-tile__select"
-        disabled
-        title="Start a run before selecting slots for batch regenerate"
-        aria-label="Select for batch regenerate"
+        title="Tick to generate (or regenerate) only this slot"
+        aria-label="Select this slot"
       />
       <span class="forge-tile__order">${_orderBadge(slotDef.order)}</span>
       <h3 class="forge-tile__label">${slotDef.label}</h3>
@@ -178,13 +177,10 @@ export function createSlotTile(slotDef, { promoted = false } = {}) {
   function setRunId(runId) {
     _runId = runId;
     $regen.disabled = !runId;
-    // Selection-and-regen only makes sense once there's a run to
-    // operate on. Untick + disable when the run goes away (e.g.
-    // after cancel resets the gallery).
-    $select.disabled = !runId;
-    $select.title = runId
-      ? "Select this slot for batch regenerate"
-      : "Start a run before selecting slots for batch regenerate";
+    // Selection survives across run boundaries — operator can pick
+    // slots before any run exists (selective initial generation) AND
+    // after one finishes (batch regen). Just untick on cancel-reset
+    // so the gallery doesn't carry stale selection into a fresh page.
     if (!runId) {
       $select.checked = false;
       root.classList.remove("forge-tile--selected");

@@ -208,6 +208,57 @@ class TestListRuns:
         assert run_b in ids
 
 
+class TestSelectiveRun:
+    def test_only_slots_runs_base_plus_listed_leaves(self, client):
+        source_id = _upload_source(client)
+        response = client.post(
+            "/api/runs",
+            json={
+                "source_id": source_id,
+                "only_slots": ["smiling", "spooky_castle"],
+            },
+        )
+        assert response.status_code == 201
+        run_id = response.json()["run_id"]
+
+        # Synchronous queue: chain has already finished.
+        manifest = client.run_store.load(run_id)
+        assert manifest.status == "done"
+        assert manifest.slots["stylized_base"].status == "done"
+        assert manifest.slots["smiling"].status == "done"
+        assert manifest.slots["spooky_castle"].status == "done"
+        assert manifest.slots["turnaround"].status == "pending"
+
+    def test_only_slots_strips_stylized_base_silently(self, client):
+        # Operator ticks stylized_base + a leaf; the API should accept
+        # this and run base+leaf normally (base runs implicitly always).
+        source_id = _upload_source(client)
+        response = client.post(
+            "/api/runs",
+            json={
+                "source_id": source_id,
+                "only_slots": ["stylized_base", "smiling"],
+            },
+        )
+        assert response.status_code == 201
+        run_id = response.json()["run_id"]
+
+        manifest = client.run_store.load(run_id)
+        # Persisted only_slots has the base stripped (it's implicit).
+        assert manifest.only_slots == ["smiling"]
+
+    def test_unknown_slot_in_only_slots_returns_400(self, client):
+        source_id = _upload_source(client)
+        response = client.post(
+            "/api/runs",
+            json={
+                "source_id": source_id,
+                "only_slots": ["nonexistent_slot"],
+            },
+        )
+        assert response.status_code == 400
+
+
 class TestCascadeRun:
     def test_cascade_reruns_full_chain_on_existing_run(self, client):
         source_id = _upload_source(client)

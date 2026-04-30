@@ -88,15 +88,29 @@ export function createSourcePanel({ slotGrid, onRunStart, onRunCancelled }) {
 
   $generate.addEventListener("click", async () => {
     if (_busy) return;
-    // Two distinct flows: full-chain (no selection) and batch-regen
-    // (≥1 selection). Selection-driven path requires an existing run.
+    // Three flows depending on (run-exists, selection):
+    //   no run + selection      → selective initial generation
+    //                             (creates a run that runs base + only
+    //                             selected leaves; ~52s × N+1 instead
+    //                             of ~25 min full chain)
+    //   existing run + selection → batch regenerate the selected slots
+    //   no selection            → full chain (always a fresh run)
     if (_selectedSlotIds.length > 0 && _runId) {
       await _runBatchRegenerate();
       return;
     }
     if (!_sourceId) return;
+    await _createRunFromInputs();
+  });
+
+  async function _createRunFromInputs() {
     try {
-      _setBusy(true, "Queuing run…");
+      // If the operator ticked tiles before any run, pass them as
+      // only_slots so the orchestrator skips the rest. Stylized_base
+      // ticks are stripped server-side because base always runs.
+      const onlySlots = _selectedSlotIds.filter((id) => id !== "stylized_base");
+      const isSelective = onlySlots.length > 0;
+      _setBusy(true, isSelective ? `Queuing selective run (${onlySlots.length})…` : "Queuing run…");
       const slotOverrides = slotGrid.collectPromptOverrides();
       const result = await createRun({
         sourceId: _sourceId,
@@ -106,16 +120,22 @@ export function createSourcePanel({ slotGrid, onRunStart, onRunCancelled }) {
         steps: Number($steps.value) || 28,
         guidance: Number($guidance.value) || 4.5,
         slotOverrides,
+        onlySlots: isSelective ? onlySlots : null,
       });
       _setBusy(false, `Run ${result.run_id} queued.`);
       _runId = result.run_id;
       $createDataset.disabled = true;
       onRunStart(result.run_id);
+      // Selection has done its job — clear it so subsequent clicks
+      // operate on the fresh run rather than re-running the same set.
+      slotGrid.clearSelection();
+      _selectedSlotIds = [];
+      _refreshGenerateButtonLabel();
     } catch (error) {
       _setBusy(false, "");
       _showError(error.message ?? String(error));
     }
-  });
+  }
 
   // ---- Batch regenerate ------------------------------------------------
 
@@ -177,17 +197,22 @@ export function createSourcePanel({ slotGrid, onRunStart, onRunCancelled }) {
   });
 
   function _refreshGenerateButtonLabel() {
-    // Selection-driven mode only kicks in when there's a run to
-    // regenerate against. Without a run, ignore selection state — the
-    // tile checkboxes are disabled in that case anyway, but be
-    // defensive in case a stale state slips through.
-    const n = _runId ? _selectedSlotIds.length : 0;
+    const n = _selectedSlotIds.length;
     if (n === 0) {
       $generate.textContent = "Generate all 25";
       $generate.disabled = _busy || !_sourceId;
-    } else {
+      return;
+    }
+    if (_runId) {
+      // Existing run + selection → batch regenerate.
       $generate.textContent = `Regenerate selected (${n})`;
       $generate.disabled = _busy;
+    } else {
+      // Fresh page + selection → selective initial generation.
+      // Counts include stylized_base if ticked (it always runs).
+      const leafCount = _selectedSlotIds.filter((id) => id !== "stylized_base").length;
+      $generate.textContent = `Generate selected (${leafCount})`;
+      $generate.disabled = _busy || !_sourceId;
     }
   }
 

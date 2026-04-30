@@ -6,6 +6,19 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- **Selective initial generation** — tile select checkboxes are now
+  always operable (reverting the disable from the prior fix). With a
+  selection on a fresh page, the *Generate all 25* button flips to
+  *Generate selected (N)* and creates a run that produces only the
+  stylized base + the selected leaves. Other slots stay `pending` so
+  the operator can fill them in later via per-tile regenerate.
+  Iteration cost on one prompt drops from ~25 minutes to ~2 minutes
+  (base + 1 leaf at ~52 s each on the 5090 with cpu_offload).
+  - New `RunManifest.only_slots: list[str] | None` (None = full chain).
+  - `POST /api/runs` accepts `only_slots`. Stylized base ids are
+    silently stripped from the list (the base always runs because every
+    leaf uses it as conditioning input).
+  - Unknown slot ids in `only_slots` return 400.
 - **Batch regenerate** — per-tile select checkbox in the tile header.
   Ticking ≥1 tile flips the *Generate all 25* button to *Regenerate
   selected (N)*; clicking it queues N regenerates through the existing
