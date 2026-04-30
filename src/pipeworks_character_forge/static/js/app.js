@@ -10,8 +10,27 @@ import { fetchSlotCatalog } from "./run-client.mjs";
 import { ProgressPoller } from "./progress-bus.mjs";
 import { createSlotGrid } from "./slot-grid.mjs";
 import { createSourcePanel } from "./source-panel.mjs";
+import { initThemeToggle } from "./theme-toggle.mjs";
+
+async function fetchHealth() {
+  try {
+    const response = await fetch("/api/health");
+    if (!response.ok) return null;
+    return response.json();
+  } catch {
+    return null;
+  }
+}
 
 async function main() {
+  initThemeToggle();
+
+  // Header version chip (best-effort; harmless if /api/health is down).
+  fetchHealth().then((health) => {
+    const versionEl = document.getElementById("app-version");
+    if (versionEl && health?.version) versionEl.textContent = `v${health.version}`;
+  });
+
   let catalog;
   try {
     catalog = await fetchSlotCatalog();
