@@ -235,6 +235,41 @@ class TestRegenerateSlot:
         for slot_state in done:
             assert (runs_dir / run_id / slot_state.image).is_file()
 
+    def test_cascade_from_base_reruns_everything_and_bumps_regen_count(
+        self, orchestrator, runs_dir
+    ):
+        run_id = _seed_run(orchestrator)
+        orchestrator.run_full(run_id)
+        baseline_calls = len(orchestrator.manager.calls)
+
+        orchestrator.cascade_from_base(run_id)
+
+        # 26 fresh manager calls (1 base + 25 leaves).
+        assert len(orchestrator.manager.calls) == baseline_calls + 26
+
+        manifest = orchestrator.run_store.load(run_id)
+        assert manifest.status == "done"
+        for slot_state in manifest.slots.values():
+            assert slot_state.regen_count == 1
+            assert slot_state.status == "done"
+
+    def test_cascade_preserves_excluded_flags_and_prompt_overrides(self, orchestrator):
+        run_id = _seed_run(orchestrator)
+        orchestrator.run_full(run_id)
+
+        # Operator marks one slot excluded and edits another's prompt.
+        manifest = orchestrator.run_store.load(run_id)
+        manifest.slots["smiling"].excluded = True
+        manifest.slots["spooky_castle"].prompt = "OVERRIDE — castle prompt."
+        orchestrator.run_store.save(manifest)
+
+        orchestrator.cascade_from_base(run_id)
+
+        manifest = orchestrator.run_store.load(run_id)
+        # Excluded flag survives; cascade does not reset slot defaults.
+        assert manifest.slots["smiling"].excluded is True
+        assert manifest.slots["spooky_castle"].prompt == "OVERRIDE — castle prompt."
+
     def test_regen_uses_stylized_base_as_reference_for_leaves(self, orchestrator):
         """Every leaf regen reads <run>/00_stylized_base.png, not the source."""
         run_id = _seed_run(orchestrator)

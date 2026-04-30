@@ -104,6 +104,36 @@ def list_runs(
     return {"run_ids": orchestrator.run_store.list_run_ids()}
 
 
+@router.post("/api/runs/{run_id}/cascade", status_code=202)
+def cascade_run(
+    run_id: str,
+    orchestrator: Annotated[PipelineOrchestrator, Depends(get_orchestrator)],
+    job_queue: Annotated[JobQueue, Depends(get_job_queue)],
+) -> dict[str, object]:
+    """Re-run stylized base + all 25 leaves on an existing run.
+
+    Used when the operator wants the new base to propagate to every
+    leaf without losing per-slot prompt edits or `excluded` flags
+    (which the run-creation endpoint would reset). Returns 404 unknown
+    run / 409 if the run is currently `running`.
+    """
+    if not orchestrator.run_store.exists(run_id):
+        raise HTTPException(status_code=404, detail=f"Unknown run_id: {run_id}")
+    manifest = orchestrator.run_store.load(run_id)
+    if manifest.status == "running":
+        raise HTTPException(
+            status_code=409,
+            detail=f"Run {run_id} is already running; cancel it first.",
+        )
+
+    job_queue.enqueue_cascade(run_id)
+    return {
+        "run_id": run_id,
+        "status": "queued",
+        "queue_depth": job_queue.depth(),
+    }
+
+
 @router.post("/api/runs/{run_id}/cancel", status_code=202)
 def cancel_run(
     run_id: str,

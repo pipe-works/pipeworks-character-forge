@@ -38,6 +38,12 @@ export function createSlotTile(slotDef, { promoted = false } = {}) {
 
   root.innerHTML = `
     <header class="forge-tile__head">
+      <input
+        type="checkbox"
+        class="forge-tile__select"
+        title="Select this slot for batch regenerate"
+        aria-label="Select for batch regenerate"
+      />
       <span class="forge-tile__order">${_orderBadge(slotDef.order)}</span>
       <h3 class="forge-tile__label">${slotDef.label}</h3>
       <span class="forge-tile__status" data-status="pending">${STATUS_LABELS.pending}</span>
@@ -70,6 +76,7 @@ export function createSlotTile(slotDef, { promoted = false } = {}) {
   const $image = root.querySelector(".forge-tile__image");
   const $prompt = root.querySelector(".forge-tile__prompt");
   const $regen = root.querySelector(".forge-tile__regen");
+  const $select = root.querySelector(".forge-tile__select");
   const $include = root.querySelector(".forge-tile__include-checkbox");
   const $seed = root.querySelector(".forge-tile__seed");
   const $error = root.querySelector(".forge-tile__error");
@@ -111,6 +118,14 @@ export function createSlotTile(slotDef, { promoted = false } = {}) {
       root.classList.toggle("forge-tile--excluded", !$include.checked);
     });
   }
+
+  $select.addEventListener("change", () => {
+    root.classList.toggle("forge-tile--selected", $select.checked);
+    _emit("forge:tile-selection-changed", {
+      slotId: slotDef.id,
+      selected: $select.checked,
+    });
+  });
 
   function update(slotState, { runId } = {}) {
     if (runId) _runId = runId;
@@ -176,5 +191,25 @@ export function createSlotTile(slotDef, { promoted = false } = {}) {
     return _runId;
   }
 
-  return { root, update, setRunId, getRunId, getPrompt, setPrompt, slotDef };
+  function isSelected() {
+    return $select.checked;
+  }
+
+  function setSelected(selected) {
+    if ($select.checked === selected) return;
+    $select.checked = selected;
+    root.classList.toggle("forge-tile--selected", selected);
+  }
+
+  return {
+    root,
+    update,
+    setRunId,
+    getRunId,
+    getPrompt,
+    setPrompt,
+    isSelected,
+    setSelected,
+    slotDef,
+  };
 }

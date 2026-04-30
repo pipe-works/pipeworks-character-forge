@@ -61,6 +61,17 @@ export async function createRun({
   return response.json();
 }
 
+export async function cascadeRun(runId) {
+  const response = await fetch(
+    `/api/runs/${encodeURIComponent(runId)}/cascade`,
+    { method: "POST" },
+  );
+  if (!response.ok) {
+    throw new Error(`Cascade failed: ${await _readError(response)}`);
+  }
+  return response.json();
+}
+
 export async function cancelRun(runId) {
   const response = await fetch(
     `/api/runs/${encodeURIComponent(runId)}/cancel`,
