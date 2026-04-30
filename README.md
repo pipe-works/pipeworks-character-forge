@@ -48,6 +48,24 @@ Runtime mutable state lives **outside** the repo, mirroring the
 Runs at `https://forge.pipeworks.luminal.local` (proxy →
 `127.0.0.1:8420`). Single-user, single trust boundary, no auth.
 
+## Exporting a dataset for ai-toolkit
+
+Once a run reaches `status: done`, drop a clean training folder for
+ai-toolkit with:
+
+```bash
+/srv/work/pipeworks/venvs/pw-character-forge/bin/pw-forge \
+    make-dataset 2026-04-30T17-55_50b75
+```
+
+That writes `runs/<run-id>/dataset/` containing only the 25 leaf
+`NN_<slot>.png` + `NN_<slot>.txt` pairs (no source image, no
+manifest, no intermediate stylized base). Point your ai-toolkit
+config's `dataset_path` at it and train.
+
+Flags: `--output-dir / -o <path>` to write somewhere else,
+`--force / -f` to overwrite an existing dataset folder.
+
 ## Deploy on Luminal
 
 `deploy/install.sh` is idempotent and self-checking. Run as a regular
