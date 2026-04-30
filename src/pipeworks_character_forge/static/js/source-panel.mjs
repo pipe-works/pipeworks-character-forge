@@ -1,6 +1,6 @@
 // Left-column controls: source upload, params, trigger word, generate-all.
 
-import { createRun, uploadSourceImage } from "./run-client.mjs";
+import { createRun, exportDataset, uploadSourceImage } from "./run-client.mjs";
 
 export function createSourcePanel({ slotGrid, onRunStart }) {
   const $drop = document.getElementById("source-drop");
@@ -11,15 +11,18 @@ export function createSourcePanel({ slotGrid, onRunStart }) {
   const $sourceInfo = document.getElementById("source-info");
 
   const $trigger = document.getElementById("trigger-word");
+  const $stylePrefix = document.getElementById("style-prefix");
   const $seed = document.getElementById("seed");
   const $steps = document.getElementById("steps");
   const $guidance = document.getElementById("guidance");
 
   const $generate = document.getElementById("generate-all");
+  const $createDataset = document.getElementById("create-dataset");
   const $queueStatus = document.getElementById("queue-status");
   const $runError = document.getElementById("run-error");
 
   let _sourceId = null;
+  let _runId = null;
   let _busy = false;
 
   // ---- Drag-and-drop ---------------------------------------------------
@@ -82,16 +85,41 @@ export function createSourcePanel({ slotGrid, onRunStart }) {
       const result = await createRun({
         sourceId: _sourceId,
         triggerWord: $trigger.value.trim(),
+        stylePrefix: $stylePrefix.value.trim(),
         seed: Number($seed.value) || 1234,
         steps: Number($steps.value) || 28,
         guidance: Number($guidance.value) || 4.5,
         slotOverrides,
       });
       _setBusy(false, `Run ${result.run_id} queued.`);
+      _runId = result.run_id;
+      $createDataset.disabled = true;
       onRunStart(result.run_id);
     } catch (error) {
       _setBusy(false, "");
       _showError(error.message ?? String(error));
+    }
+  });
+
+  // ---- Create dataset --------------------------------------------------
+
+  $createDataset.addEventListener("click", async () => {
+    if (!_runId || $createDataset.disabled) return;
+    const originalLabel = $createDataset.textContent;
+    $createDataset.disabled = true;
+    $createDataset.textContent = "Exporting…";
+    try {
+      const result = await exportDataset(_runId);
+      $queueStatus.textContent = `Dataset written → ${result.path} (${result.pairs} pairs)`;
+      $createDataset.textContent = "Dataset created ✓";
+      window.setTimeout(() => {
+        $createDataset.textContent = originalLabel;
+        $createDataset.disabled = false;
+      }, 3000);
+    } catch (error) {
+      _showError(error.message ?? String(error));
+      $createDataset.textContent = originalLabel;
+      $createDataset.disabled = false;
     }
   });
 
@@ -124,6 +152,7 @@ export function createSourcePanel({ slotGrid, onRunStart }) {
 
     if (manifest.status === "done") {
       $queueStatus.textContent = "Run complete.";
+      $createDataset.disabled = false;
     } else if (manifest.status === "running") {
       const totalSlots = Object.keys(manifest.slots).length;
       const doneSlots = Object.values(manifest.slots).filter(

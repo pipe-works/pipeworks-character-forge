@@ -56,6 +56,13 @@ class RunManifest(BaseModel):
     run_id: str
     source_image: str = "source.png"
     trigger_word: str | None = None
+    # Optional style guard text prepended to every slot's prompt at
+    # generation time (NOT to captions — the LoRA learns style from
+    # the images, captions stay clean). Use to lock visual identity
+    # across all 26 outputs against the model's tendency to drift on
+    # photographically-described scenes (e.g. spooky castle, rainy
+    # street).
+    style_prefix: str | None = None
     params: RunParams = Field(default_factory=RunParams)
     status: RunStatus = "pending"
     error: str | None = None
@@ -101,6 +108,7 @@ class RunStore:
         params: RunParams,
         catalog: SlotCatalog,
         slot_overrides: dict[str, str] | None = None,
+        style_prefix: str | None = None,
     ) -> RunManifest:
         """Initialise the on-disk run dir, copy the source, write the manifest.
 
@@ -128,6 +136,7 @@ class RunStore:
         manifest = RunManifest(
             run_id=run_id,
             trigger_word=trigger_word,
+            style_prefix=style_prefix,
             params=params,
             slots=slots,
             created_at=now,

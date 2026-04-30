@@ -117,11 +117,12 @@ class PipelineOrchestrator:
 
         order = self._order_for(slot_id)
         seed = manifest.params.seed + order + _REGEN_SEED_STRIDE * slot_state.regen_count
+        prompt_for_model = self._compose_prompt(manifest, slot_state.prompt)
 
         try:
             output = self.manager.i2i(
                 ref,
-                slot_state.prompt,
+                prompt_for_model,
                 steps=manifest.params.steps,
                 guidance=manifest.params.guidance,
                 seed=seed,
@@ -166,9 +167,26 @@ class PipelineOrchestrator:
         return slot_def.order
 
     def _render_caption(self, manifest: RunManifest, prompt: str) -> str:
+        # Captions intentionally do NOT include the style prefix. The
+        # LoRA learns style from the images themselves; baking the
+        # prefix into captions would force the trigger word to be
+        # used together with the prefix at inference time.
         if manifest.trigger_word:
             return f"{manifest.trigger_word}, {prompt}"
         return prompt
+
+    @staticmethod
+    def _compose_prompt(manifest: RunManifest, slot_prompt: str) -> str:
+        """Build the final prompt sent to the i2i pipeline.
+
+        Style prefix (if set) is prepended verbatim with a single
+        space separator, so the operator can write it as one or more
+        sentences without worrying about punctuation collisions.
+        """
+        prefix = (manifest.style_prefix or "").strip()
+        if not prefix:
+            return slot_prompt
+        return f"{prefix} {slot_prompt}"
 
     # Re-export for tests / introspection.
     @staticmethod

@@ -46,7 +46,12 @@ def orchestrator(run_store) -> PipelineOrchestrator:
     return PipelineOrchestrator(manager=manager, run_store=run_store, catalog=catalog)
 
 
-def _seed_run(orchestrator: PipelineOrchestrator, *, trigger_word: str | None = None) -> str:
+def _seed_run(
+    orchestrator: PipelineOrchestrator,
+    *,
+    trigger_word: str | None = None,
+    style_prefix: str | None = None,
+) -> str:
     run_id = "test-run"
     catalog = slot_catalog.load_catalog()
     source_path = orchestrator.run_store.runs_dir.parent / "source.png"
@@ -55,6 +60,7 @@ def _seed_run(orchestrator: PipelineOrchestrator, *, trigger_word: str | None = 
         run_id=run_id,
         source_path=source_path,
         trigger_word=trigger_word,
+        style_prefix=style_prefix,
         params=RunParams(seed=1000, steps=4, guidance=3.0),
         catalog=catalog,
     )
@@ -168,6 +174,31 @@ class TestRegenerateSlot:
         orchestrator.run_full(run_id)
         with pytest.raises(KeyError):
             orchestrator.regenerate_slot(run_id, "nonexistent_slot")
+
+    def test_style_prefix_prepended_to_prompt_sent_to_manager(self, orchestrator, runs_dir):
+        run_id = _seed_run(
+            orchestrator,
+            trigger_word="trgr",
+            style_prefix="Linocut style with muted sepia palette.",
+        )
+        orchestrator.run_full(run_id)
+
+        # Every manager call's prompt must start with the style prefix
+        # plus a single space separator before the slot's own text.
+        for call in orchestrator.manager.calls:
+            assert call["prompt"].startswith("Linocut style with muted sepia palette. ")
+
+    def test_style_prefix_does_not_leak_into_captions(self, orchestrator, runs_dir):
+        run_id = _seed_run(
+            orchestrator,
+            trigger_word="trgr",
+            style_prefix="Linocut style with muted sepia palette.",
+        )
+        orchestrator.run_full(run_id)
+
+        text = (runs_dir / run_id / "01_turnaround.txt").read_text(encoding="utf-8")
+        assert "Linocut" not in text
+        assert text.startswith("trgr,")
 
     def test_regen_uses_stylized_base_as_reference_for_leaves(self, orchestrator):
         """Every leaf regen reads <run>/00_stylized_base.png, not the source."""

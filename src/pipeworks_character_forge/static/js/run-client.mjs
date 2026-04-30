@@ -36,6 +36,7 @@ export async function uploadSourceImage(file) {
 export async function createRun({
   sourceId,
   triggerWord,
+  stylePrefix,
   seed,
   steps,
   guidance,
@@ -47,6 +48,7 @@ export async function createRun({
     body: JSON.stringify({
       source_id: sourceId,
       trigger_word: triggerWord || null,
+      style_prefix: stylePrefix || null,
       seed,
       steps,
       guidance,
@@ -55,6 +57,17 @@ export async function createRun({
   });
   if (!response.ok) {
     throw new Error(`Run create failed: ${await _readError(response)}`);
+  }
+  return response.json();
+}
+
+export async function exportDataset(runId) {
+  const response = await fetch(
+    `/api/runs/${encodeURIComponent(runId)}/dataset`,
+    { method: "POST" },
+  );
+  if (!response.ok) {
+    throw new Error(`Dataset export failed: ${await _readError(response)}`);
   }
   return response.json();
 }

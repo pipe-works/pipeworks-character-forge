@@ -55,6 +55,21 @@
               />
               <span class="forge-hint">Prepended to every caption file at export time.</span>
             </label>
+            <label class="forge-field">
+              <span class="forge-field__label">Style prefix</span>
+              <textarea
+                class="input forge-style-prefix"
+                id="style-prefix"
+                rows="2"
+                placeholder="Linocut style with muted sepia palette and archival paper texture."
+                spellcheck="false"
+              ></textarea>
+              <span class="forge-hint">
+                Prepended to every slot's prompt at generation time. Locks visual
+                identity against scene prompts that describe photographic lighting.
+                Not added to captions.
+              </span>
+            </label>
             <div class="forge-field-row">
               <label class="forge-field">
                 <span class="forge-field__label">Seed</span>
@@ -81,6 +96,15 @@
           <section class="forge-section">
             <button type="button" id="generate-all" class="btn btn--primary" disabled>
               Generate all 25
+            </button>
+            <button
+              type="button"
+              id="create-dataset"
+              class="btn btn--secondary"
+              disabled
+              title="Available once the run reaches status: done"
+            >
+              Create dataset
             </button>
             <p id="run-error" class="forge-run-error" hidden></p>
           </section>
