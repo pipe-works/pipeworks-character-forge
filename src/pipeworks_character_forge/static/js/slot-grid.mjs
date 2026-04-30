@@ -1,7 +1,7 @@
 // Renders the 26-tile grid (stylized base + 25 leaves) and applies
 // manifest updates from the progress poller.
 
-import { regenerateSlot } from "./run-client.mjs";
+import { patchSlot, regenerateSlot } from "./run-client.mjs";
 import { createSlotTile } from "./slot-tile.mjs";
 
 export function createSlotGrid(rootEl, catalog) {
@@ -30,6 +30,18 @@ export function createSlotGrid(rootEl, catalog) {
   rootEl.addEventListener("forge:tile-prompt-changed", (event) => {
     const { slotId, prompt } = event.detail;
     promptOverrides.set(slotId, prompt);
+  });
+
+  rootEl.addEventListener("forge:tile-excluded-changed", async (event) => {
+    const { slotId, excluded } = event.detail;
+    const tile = tilesById.get(slotId);
+    const runId = tile?.getRunId() ?? null;
+    if (!runId) return; // Can't persist before a run exists.
+    try {
+      await patchSlot(runId, slotId, { excluded });
+    } catch (error) {
+      console.error("Slot patch failed:", error);
+    }
   });
 
   rootEl.addEventListener("forge:tile-regen-requested", async (event) => {

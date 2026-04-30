@@ -32,6 +32,18 @@ class RegenerateResponse(BaseModel):
     queue_depth: int
 
 
+class SlotPatchRequest(BaseModel):
+    excluded: bool | None = None
+    prompt: str | None = None
+
+
+class SlotPatchResponse(BaseModel):
+    run_id: str
+    slot_id: str
+    excluded: bool
+    prompt: str
+
+
 @router.post(
     "/api/runs/{run_id}/slots/{slot_id}/regenerate",
     response_model=RegenerateResponse,
@@ -62,4 +74,42 @@ def regenerate(
         slot_id=slot_id,
         status="queued",
         queue_depth=job_queue.depth(),
+    )
+
+
+@router.patch(
+    "/api/runs/{run_id}/slots/{slot_id}",
+    response_model=SlotPatchResponse,
+)
+def patch_slot(
+    run_id: str,
+    slot_id: str,
+    body: SlotPatchRequest,
+    orchestrator: Annotated[PipelineOrchestrator, Depends(get_orchestrator)],
+) -> SlotPatchResponse:
+    """Update a slot's metadata without re-generating it.
+
+    Currently exposes ``excluded`` (operator dataset curation) and
+    ``prompt`` (override for the next regenerate). Both fields are
+    optional — pass only the ones you want to change.
+    """
+    if not orchestrator.run_store.exists(run_id):
+        raise HTTPException(status_code=404, detail=f"Unknown run_id: {run_id}")
+
+    manifest = orchestrator.run_store.load(run_id)
+    if slot_id not in manifest.slots:
+        raise HTTPException(status_code=404, detail=f"Unknown slot_id: {slot_id}")
+
+    slot_state = manifest.slots[slot_id]
+    if body.excluded is not None:
+        slot_state.excluded = body.excluded
+    if body.prompt is not None:
+        slot_state.prompt = body.prompt
+    orchestrator.run_store.save(manifest)
+
+    return SlotPatchResponse(
+        run_id=run_id,
+        slot_id=slot_id,
+        excluded=slot_state.excluded,
+        prompt=slot_state.prompt,
     )

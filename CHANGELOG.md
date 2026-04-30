@@ -6,6 +6,20 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- **Exclude from dataset** — per-slot toggle to curate drifted leaves
+  out of the LoRA training set without deleting them from disk.
+  - `SlotState` gains `excluded: bool = False`.
+  - New `PATCH /api/runs/{run_id}/slots/{slot_id}` endpoint with
+    `{excluded, prompt}` body — both fields optional, change only what
+    you pass. Backed the existing `prompt` override too, since it was
+    a natural fit for the same metadata-only patch route.
+  - `pw-forge make-dataset` and `POST /api/runs/{id}/dataset` skip
+    excluded slots; the result counts them in a separate `excluded`
+    list (informational, not an error). CLI prints them on stderr.
+  - Frontend tile gets a small "Include" checkbox. Default checked;
+    unchecking it dims the tile (50% opacity, slight grayscale) and
+    immediately PATCHes the manifest. The stylized base tile hides
+    the checkbox — the intermediate is always excluded by definition.
 - **Cancel run** — best-effort mid-run cancellation. New
   `POST /api/runs/{run_id}/cancel` endpoint flips a flag the
   orchestrator polls between slots; the in-flight i2i call (~52 s)
