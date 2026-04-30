@@ -1,0 +1,33 @@
+# Codecov configuration for pipeworks-character-forge
+# https://docs.codecov.com/docs/codecovyml-reference
+
+coverage:
+  status:
+    project:
+      default:
+        target: 80%
+        threshold: 1%
+        informational: false
+    patch:
+      default:
+        target: 80%
+        threshold: 5%
+        informational: false
+
+  precision: 2
+  round: down
+  range: 50...100
+
+comment:
+  layout: header, diff, flags, components
+  behavior: default
+  require_changes: false
+  require_base: false
+  require_head: true
+
+ignore:
+- tests/
+- examples/
+- docs/
+- '**/app.js'
+- '**/main.py'    # uvicorn entrypoint, exercised by integration only

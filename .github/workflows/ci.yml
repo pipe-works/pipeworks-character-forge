@@ -1,0 +1,30 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop, release-please--*]
+  pull_request:
+    branches: [main, develop]
+  schedule:
+  - cron: 17 5 * * 1      # Weekly Monday full sweep (UTC)
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  ci:
+    uses: pipe-works/.github/.github/workflows/reusable-python-ci.yml@main
+    with:
+      python-version: '3.12'
+      python-versions: '["3.12"]'
+      coverage-threshold: 80
+      run-security: true
+      run-docs: false
+      run-gitleaks: true
+      requires-models: false
+      coverage-on-matrix: false
+      run-supplemental-tests: false
+    secrets: inherit
