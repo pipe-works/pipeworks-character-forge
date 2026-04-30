@@ -48,6 +48,40 @@ Runtime mutable state lives **outside** the repo, mirroring the
 Runs at `https://forge.pipeworks.luminal.local` (proxy →
 `127.0.0.1:8410`). Single-user, single trust boundary, no auth.
 
+## Deploy on Luminal
+
+`deploy/install.sh` is idempotent and self-checking. Run as a regular
+user in the `pipeworks` group; it `sudo`s for the privileged steps:
+
+```bash
+bash deploy/install.sh
+```
+
+First run drops `/etc/pipeworks/character-forge/character-forge.env`
+and exits with a reminder to set `HF_TOKEN`. Edit and re-run:
+
+```bash
+sudoedit /etc/pipeworks/character-forge/character-forge.env
+bash deploy/install.sh
+```
+
+The script:
+
+1. Pre-flight (user, group, mkcert, repo, venv, `[ml]` extras).
+2. mkcert leaf cert into `/etc/nginx/certs/`.
+3. nginx vhost + reload.
+4. Env file install + `HF_TOKEN` validation.
+5. systemd link + `enable --now`.
+6. Health probe against `https://127.0.0.1:8410/api/health`.
+
+Manual follow-ups (script reminds at the end):
+
+- DrayTek LAN DNS: `forge.pipeworks.luminal.local` → `192.168.20.11`
+- `/etc/luminal/services.yml` registration
+
+Clean rollback: `bash deploy/uninstall.sh` (leaves the venv, repo, and
+runtime cache intact — remove those by hand if needed).
+
 ## Status
 
 PR 1 — repo skeleton + deploy plumbing, no model loading yet. See
