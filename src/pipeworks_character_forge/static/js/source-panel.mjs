@@ -23,14 +23,10 @@ export function createSourcePanel({ slotGrid, onRunStart }) {
   let _busy = false;
 
   // ---- Drag-and-drop ---------------------------------------------------
-
-  $drop.addEventListener("click", (event) => {
-    // The label wraps both the input and the visible drop zone, so
-    // clicks on the visible parts already trigger the input. Don't
-    // double-fire if the click landed directly on the input.
-    if (event.target === $file) return;
-    $file.click();
-  });
+  //
+  // The drop zone is a <label> wrapping the hidden <input type="file">,
+  // so clicks anywhere inside it forward to the input automatically.
+  // No JS click handler needed — adding one fires the dialog twice.
 
   $drop.addEventListener("dragover", (event) => {
     event.preventDefault();
