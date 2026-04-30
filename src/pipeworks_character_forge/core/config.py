@@ -50,7 +50,12 @@ class PipeworksForgeConfig(BaseSettings):
     default_guidance: float = 4.5
 
     enable_attention_slicing: bool = True
-    enable_model_cpu_offload: bool = False
+    # FLUX.2-klein-base-9B in bf16 (transformer + dual text encoders + VAE)
+    # weighs in around 30 GiB resident on GPU, leaving no room for
+    # activations on a 32 GiB card. CPU offload is required on the
+    # canonical 5090 deployment; only flip this off on cards with
+    # noticeably more VRAM (A100 80 GB, H100, etc.).
+    enable_model_cpu_offload: bool = True
 
     disable_http_cache: bool = False
 
