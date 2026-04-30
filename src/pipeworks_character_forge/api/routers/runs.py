@@ -49,6 +49,7 @@ class DatasetExportResponse(BaseModel):
     path: str
     pairs: int
     skipped: list[str]
+    excluded: list[str]
 
 
 def _make_run_id() -> str:
@@ -183,4 +184,5 @@ def export_dataset(
         path=str(result.output_dir),
         pairs=result.pairs_copied,
         skipped=result.skipped,
+        excluded=result.excluded,
     )

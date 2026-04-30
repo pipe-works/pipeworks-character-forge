@@ -38,7 +38,10 @@ class DatasetExportError(Exception):
 class DatasetExportResult:
     output_dir: Path
     pairs_copied: int
+    # Slots whose files were missing on disk; surfaces as a stderr warning.
     skipped: list[str] = field(default_factory=list)
+    # Slots the operator marked excluded; informational, not an error.
+    excluded: list[str] = field(default_factory=list)
     trigger_word_missing: bool = False
 
 
@@ -86,8 +89,14 @@ def export_run_dataset(
 
     pairs_copied = 0
     skipped: list[str] = []
+    excluded: list[str] = []
     for slot_id, slot_state in manifest.slots.items():
         if slot_id == "stylized_base":
+            continue
+        if slot_state.excluded:
+            # Operator-marked exclusion — don't copy, but log so the
+            # final summary can list which slots got dropped.
+            excluded.append(slot_id)
             continue
         if not (slot_state.image and slot_state.caption):
             skipped.append(slot_id)
@@ -107,6 +116,7 @@ def export_run_dataset(
         output_dir=target,
         pairs_copied=pairs_copied,
         skipped=sorted(skipped),
+        excluded=sorted(excluded),
         trigger_word_missing=not manifest.trigger_word,
     )
 
@@ -161,6 +171,12 @@ def run_make_dataset(args: argparse.Namespace) -> int:
         )
 
     print(f"Wrote {result.pairs_copied} image+caption pairs to {result.output_dir}")
+    if result.excluded:
+        print(
+            f"Excluded {len(result.excluded)} slot(s) by operator request: "
+            f"{', '.join(result.excluded)}",
+            file=sys.stderr,
+        )
     if result.skipped:
         print(
             f"Skipped {len(result.skipped)} slot(s) with missing files: "

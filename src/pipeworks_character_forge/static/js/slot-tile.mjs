@@ -1,12 +1,13 @@
 // One slot tile. Built from a SlotDef from /api/slots; `update(slotState)`
-// applies a per-slot row from the run manifest. Emits two custom events
+// applies a per-slot row from the run manifest. Emits three custom events
 // when the user interacts with the tile:
 //
-//   forge:tile-prompt-changed { slotId, prompt }   — debounced textarea
-//   forge:tile-regen-requested { slotId, prompt }  — regenerate click
+//   forge:tile-prompt-changed { slotId, prompt }     — debounced textarea
+//   forge:tile-regen-requested { slotId, prompt }    — regenerate click
+//   forge:tile-excluded-changed { slotId, excluded } — include checkbox
 //
-// The grid (slot-grid.mjs) listens for both and decides what to do
-// (persist locally as overrides, or POST a regenerate request).
+// The grid (slot-grid.mjs) listens for all three and decides what to do
+// (persist locally as overrides, POST a regenerate, or PATCH the slot).
 
 import { imageUrlFor } from "./run-client.mjs";
 
@@ -30,6 +31,11 @@ export function createSlotTile(slotDef, { promoted = false } = {}) {
   root.dataset.group = slotDef.group;
   if (promoted) root.classList.add("forge-tile--promoted");
 
+  // Stylized base is excluded from the dataset by definition (it's an
+  // intermediate, not training material), so its include checkbox is
+  // hidden — there's nothing meaningful to toggle.
+  const isIntermediate = slotDef.group === "intermediate";
+
   root.innerHTML = `
     <header class="forge-tile__head">
       <span class="forge-tile__order">${_orderBadge(slotDef.order)}</span>
@@ -49,6 +55,10 @@ export function createSlotTile(slotDef, { promoted = false } = {}) {
         <button type="button" class="forge-btn forge-btn--small forge-tile__regen" disabled>
           Regenerate
         </button>
+        <label class="forge-tile__include" ${isIntermediate ? "hidden" : ""}>
+          <input type="checkbox" class="forge-tile__include-checkbox" checked />
+          <span>Include</span>
+        </label>
         <span class="forge-tile__seed" hidden></span>
       </div>
       <p class="forge-tile__error" hidden></p>
@@ -60,6 +70,7 @@ export function createSlotTile(slotDef, { promoted = false } = {}) {
   const $image = root.querySelector(".forge-tile__image");
   const $prompt = root.querySelector(".forge-tile__prompt");
   const $regen = root.querySelector(".forge-tile__regen");
+  const $include = root.querySelector(".forge-tile__include-checkbox");
   const $seed = root.querySelector(".forge-tile__seed");
   const $error = root.querySelector(".forge-tile__error");
 
@@ -90,6 +101,16 @@ export function createSlotTile(slotDef, { promoted = false } = {}) {
       prompt: $prompt.value,
     });
   });
+
+  if ($include) {
+    $include.addEventListener("change", () => {
+      _emit("forge:tile-excluded-changed", {
+        slotId: slotDef.id,
+        excluded: !$include.checked,
+      });
+      root.classList.toggle("forge-tile--excluded", !$include.checked);
+    });
+  }
 
   function update(slotState, { runId } = {}) {
     if (runId) _runId = runId;
@@ -124,6 +145,16 @@ export function createSlotTile(slotDef, { promoted = false } = {}) {
       $error.hidden = true;
     }
 
+    // Sync the Include checkbox with the manifest's excluded flag,
+    // without firing a change event back at the server.
+    if ($include && slotState && "excluded" in slotState) {
+      const shouldBeChecked = !slotState.excluded;
+      if ($include.checked !== shouldBeChecked) {
+        $include.checked = shouldBeChecked;
+      }
+      root.classList.toggle("forge-tile--excluded", Boolean(slotState.excluded));
+    }
+
     // Regenerate is only possible once a run exists.
     $regen.disabled = !_runId;
   }
@@ -141,5 +172,9 @@ export function createSlotTile(slotDef, { promoted = false } = {}) {
     $prompt.value = prompt;
   }
 
-  return { root, update, setRunId, getPrompt, setPrompt, slotDef };
+  function getRunId() {
+    return _runId;
+  }
+
+  return { root, update, setRunId, getRunId, getPrompt, setPrompt, slotDef };
 }

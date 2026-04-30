@@ -131,6 +131,33 @@ class TestMakeDatasetGuards:
         assert not stale.exists()
 
 
+class TestMakeDatasetExclusions:
+    def test_excluded_slots_are_omitted_from_dataset(self, runs_dir, capsys):
+        run_id = _seed_complete_run(runs_dir)
+
+        # Mark two slots excluded by editing the manifest directly.
+        from pipeworks_character_forge.api.services.run_store import RunStore
+
+        store = RunStore(runs_dir)
+        manifest = store.load(run_id)
+        manifest.slots["smiling"].excluded = True
+        manifest.slots["laughing"].excluded = True
+        store.save(manifest)
+
+        cli_main(["make-dataset", run_id])
+
+        dataset = runs_dir / run_id / "dataset"
+        pngs = sorted(p.name for p in dataset.glob("*.png"))
+        assert "09_smiling.png" not in pngs
+        assert "10_laughing.png" not in pngs
+        # 25 leaves minus 2 excluded = 23 pairs.
+        assert len(pngs) == 23
+        assert len(list(dataset.glob("*.txt"))) == 23
+
+        err = capsys.readouterr().err
+        assert "Excluded 2 slot(s)" in err
+
+
 class TestMakeDatasetCustomOutput:
     def test_output_dir_override_lands_outside_run_dir(self, runs_dir, tmp_path):
         run_id = _seed_complete_run(runs_dir)

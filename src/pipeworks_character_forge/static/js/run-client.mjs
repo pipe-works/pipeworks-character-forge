@@ -91,6 +91,21 @@ export async function fetchRunManifest(runId) {
   return response.json();
 }
 
+export async function patchSlot(runId, slotId, patch) {
+  const response = await fetch(
+    `/api/runs/${encodeURIComponent(runId)}/slots/${encodeURIComponent(slotId)}`,
+    {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(patch),
+    },
+  );
+  if (!response.ok) {
+    throw new Error(`Slot patch failed: ${await _readError(response)}`);
+  }
+  return response.json();
+}
+
 export async function regenerateSlot(runId, slotId, prompt) {
   const body = prompt !== undefined && prompt !== null ? { prompt } : {};
   const response = await fetch(

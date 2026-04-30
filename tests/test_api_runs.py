@@ -201,6 +201,57 @@ class TestListRuns:
         assert run_b in ids
 
 
+class TestPatchSlot:
+    def test_marks_slot_excluded(self, client):
+        source_id = _upload_source(client)
+        run_id = client.post("/api/runs", json={"source_id": source_id}).json()["run_id"]
+
+        response = client.patch(
+            f"/api/runs/{run_id}/slots/smiling",
+            json={"excluded": True},
+        )
+        assert response.status_code == 200
+        body = response.json()
+        assert body["excluded"] is True
+
+        # Persisted to the manifest.
+        manifest = client.run_store.load(run_id)
+        assert manifest.slots["smiling"].excluded is True
+
+    def test_unknown_run_or_slot_returns_404(self, client):
+        bad_run = client.patch(
+            "/api/runs/does-not-exist/slots/smiling",
+            json={"excluded": True},
+        )
+        assert bad_run.status_code == 404
+
+        source_id = _upload_source(client)
+        run_id = client.post("/api/runs", json={"source_id": source_id}).json()["run_id"]
+
+        bad_slot = client.patch(
+            f"/api/runs/{run_id}/slots/nonexistent_slot",
+            json={"excluded": True},
+        )
+        assert bad_slot.status_code == 404
+
+    def test_dataset_export_skips_excluded_slots(self, client):
+        source_id = _upload_source(client)
+        run_id = client.post(
+            "/api/runs", json={"source_id": source_id, "trigger_word": "trgr"}
+        ).json()["run_id"]
+
+        client.patch(
+            f"/api/runs/{run_id}/slots/spooky_castle",
+            json={"excluded": True},
+        )
+
+        response = client.post(f"/api/runs/{run_id}/dataset")
+        assert response.status_code == 201
+        body = response.json()
+        assert body["pairs"] == 24
+        assert "spooky_castle" in body["excluded"]
+
+
 class TestCancelRun:
     def test_cancel_sets_flag_on_running_manifest(self, client, runs_dir):
         source_id = _upload_source(client)

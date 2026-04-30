@@ -39,6 +39,12 @@ class SlotState(BaseModel):
     seed_used: int | None = None
     regen_count: int = 0
     error: str | None = None
+    # If True, this slot is omitted from `pw-forge make-dataset` and the
+    # POST /api/runs/{id}/dataset endpoint. Lets the operator curate
+    # drifted leaves out of the LoRA training set without deleting them
+    # from disk. The stylized_base intermediate is always excluded from
+    # the dataset regardless of this flag.
+    excluded: bool = False
 
 
 class RunParams(BaseModel):
