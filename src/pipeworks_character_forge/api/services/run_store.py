@@ -69,6 +69,12 @@ class RunManifest(BaseModel):
     # photographically-described scenes (e.g. spooky castle, rainy
     # street).
     style_prefix: str | None = None
+    # Optional whitelist of leaf slot ids to generate. If set, ``run_full``
+    # will run the stylized base (always) plus only the listed leaves;
+    # everything else stays ``pending`` so the operator can iterate on
+    # one prompt at a time without burning ~25 min on the full chain.
+    # ``None`` means "run the whole chain".
+    only_slots: list[str] | None = None
     params: RunParams = Field(default_factory=RunParams)
     status: RunStatus = "pending"
     # Best-effort cancellation flag. The HTTP cancel endpoint sets this
@@ -121,6 +127,7 @@ class RunStore:
         catalog: SlotCatalog,
         slot_overrides: dict[str, str] | None = None,
         style_prefix: str | None = None,
+        only_slots: list[str] | None = None,
     ) -> RunManifest:
         """Initialise the on-disk run dir, copy the source, write the manifest.
 
@@ -149,6 +156,7 @@ class RunStore:
             run_id=run_id,
             trigger_word=trigger_word,
             style_prefix=style_prefix,
+            only_slots=only_slots,
             params=params,
             slots=slots,
             created_at=now,

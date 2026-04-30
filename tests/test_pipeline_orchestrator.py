@@ -51,6 +51,7 @@ def _seed_run(
     *,
     trigger_word: str | None = None,
     style_prefix: str | None = None,
+    only_slots: list[str] | None = None,
 ) -> str:
     run_id = "test-run"
     catalog = slot_catalog.load_catalog()
@@ -63,6 +64,7 @@ def _seed_run(
         style_prefix=style_prefix,
         params=RunParams(seed=1000, steps=4, guidance=3.0),
         catalog=catalog,
+        only_slots=only_slots,
     )
     return run_id
 
@@ -234,6 +236,24 @@ class TestRegenerateSlot:
         # Done slots' PNGs stayed on disk.
         for slot_state in done:
             assert (runs_dir / run_id / slot_state.image).is_file()
+
+    def test_only_slots_runs_base_plus_listed_leaves_and_skips_others(self, orchestrator, runs_dir):
+        run_id = _seed_run(orchestrator, only_slots=["smiling", "running"])
+
+        orchestrator.run_full(run_id)
+
+        # 3 fresh manager calls: base + 2 leaves.
+        assert len(orchestrator.manager.calls) == 3
+
+        manifest = orchestrator.run_store.load(run_id)
+        assert manifest.status == "done"
+        assert manifest.slots["stylized_base"].status == "done"
+        assert manifest.slots["smiling"].status == "done"
+        assert manifest.slots["running"].status == "done"
+        # Every other leaf stays pending — the operator can fill them
+        # in later via per-tile regenerate or another selective run.
+        assert manifest.slots["turnaround"].status == "pending"
+        assert manifest.slots["spooky_castle"].status == "pending"
 
     def test_cascade_from_base_reruns_everything_and_bumps_regen_count(
         self, orchestrator, runs_dir

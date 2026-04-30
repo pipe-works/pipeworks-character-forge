@@ -36,6 +36,10 @@ class CreateRunRequest(BaseModel):
     steps: int = Field(default=28, ge=1, le=200)
     guidance: float = Field(default=4.5, ge=0.0, le=20.0)
     slot_overrides: dict[str, str] = Field(default_factory=dict)
+    # If set, the orchestrator only generates these leaf slots. The
+    # stylized base always runs (every leaf uses it as conditioning).
+    # None means "run the full 25-leaf chain".
+    only_slots: list[str] | None = None
 
 
 class CreateRunResponse(BaseModel):
@@ -78,6 +82,18 @@ def create_run(
             detail=f"slot_overrides references unknown slot ids: {sorted(unknown)}",
         )
 
+    only_slots = body.only_slots
+    if only_slots is not None:
+        # Leaf-only filter — stylized_base is implicit and always runs.
+        leaf_ids = {s.id for s in catalog.slots}
+        only_slots = [s for s in only_slots if s != catalog.intermediate.id]
+        unknown_only = set(only_slots) - leaf_ids
+        if unknown_only:
+            raise HTTPException(
+                status_code=400,
+                detail=f"only_slots references unknown slot ids: {sorted(unknown_only)}",
+            )
+
     run_id = _make_run_id()
     orchestrator.run_store.create(
         run_id=run_id,
@@ -87,6 +103,7 @@ def create_run(
         params=RunParams(seed=body.seed, steps=body.steps, guidance=body.guidance),
         catalog=catalog,
         slot_overrides=body.slot_overrides,
+        only_slots=only_slots,
     )
     job_queue.enqueue_full_run(run_id)
 

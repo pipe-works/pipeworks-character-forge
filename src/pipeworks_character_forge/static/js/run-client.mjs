@@ -41,6 +41,7 @@ export async function createRun({
   steps,
   guidance,
   slotOverrides,
+  onlySlots,
 }) {
   const response = await fetch("/api/runs", {
     method: "POST",
@@ -53,6 +54,7 @@ export async function createRun({
       steps,
       guidance,
       slot_overrides: slotOverrides || {},
+      only_slots: onlySlots || null,
     }),
   });
   if (!response.ok) {

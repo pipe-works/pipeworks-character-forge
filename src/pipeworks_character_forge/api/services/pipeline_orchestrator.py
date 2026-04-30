@@ -64,6 +64,11 @@ class PipelineOrchestrator:
         manifest.cancel_requested = False
         self.run_store.save(manifest)
 
+        # When `only_slots` is set, every leaf NOT in the list stays
+        # `pending`. The stylized base always runs because every leaf
+        # uses it as conditioning input.
+        leaf_filter = set(manifest.only_slots) if manifest.only_slots else None
+
         try:
             self._generate_slot(manifest, self.catalog.intermediate.id)
             if self._was_cancelled(manifest.run_id):
@@ -71,6 +76,8 @@ class PipelineOrchestrator:
                 return
 
             for slot in sorted(self.catalog.slots, key=lambda s: s.order):
+                if leaf_filter is not None and slot.id not in leaf_filter:
+                    continue
                 if self._was_cancelled(manifest.run_id):
                     self._finalize_cancelled(manifest.run_id)
                     return
