@@ -33,7 +33,6 @@ class FakeFlux2KleinManager(Flux2KleinManager):
         *,
         steps: int,
         guidance: float,
-        strength: float,
         seed: int,
     ) -> Image.Image:
         self.calls.append(
@@ -41,7 +40,6 @@ class FakeFlux2KleinManager(Flux2KleinManager):
                 "prompt": prompt,
                 "steps": steps,
                 "guidance": guidance,
-                "strength": strength,
                 "seed": seed,
                 "ref_size": reference_image.size,
             }

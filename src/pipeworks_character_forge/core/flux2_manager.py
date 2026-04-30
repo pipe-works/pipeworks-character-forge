@@ -90,23 +90,33 @@ class Flux2KleinManager:
         *,
         steps: int,
         guidance: float,
-        strength: float,
         seed: int,
     ) -> Image.Image:
-        """Run one image-to-image step. Loads the pipeline lazily on first call."""
+        """Run one reference-conditioned generation step.
+
+        FLUX.2-klein's pipeline is conditioning-based, not denoising-strength
+        based: the reference image steers character/style identity but the
+        sampler always runs the full schedule. There is no ``strength``
+        parameter in :class:`diffusers.Flux2KleinPipeline.__call__`.
+        Loads the pipeline lazily on first call.
+        """
         if self.pipeline is None:
             self.load()
         assert self.pipeline is not None
 
         import torch
 
-        generator = torch.Generator(device=self.config.device).manual_seed(seed)
+        # When CPU offload is enabled the pipeline modules live on CPU until
+        # accelerate moves them to GPU on demand; pinning the generator to a
+        # specific device would mismatch that. Use a CPU generator in that
+        # case — the pipeline reseeds the device-side noise from it.
+        gen_device = "cpu" if self.config.enable_model_cpu_offload else self.config.device
+        generator = torch.Generator(device=gen_device).manual_seed(seed)
         result = self.pipeline(
             prompt=prompt,
             image=reference_image,
             num_inference_steps=steps,
             guidance_scale=guidance,
-            strength=strength,
             generator=generator,
         )
         return result.images[0]  # type: ignore[no-any-return]

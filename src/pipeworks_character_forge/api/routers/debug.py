@@ -28,7 +28,6 @@ def debug_i2i(
     manager: Annotated[Flux2KleinManager, Depends(get_manager)],
     steps: Annotated[int, Form()] = 28,
     guidance: Annotated[float, Form()] = 4.5,
-    strength: Annotated[float, Form()] = 0.6,
     seed: Annotated[int, Form()] = 1234,
 ) -> Response:
     source_path = config.runs_dir / "_staging" / f"{source_id}.png"
@@ -41,7 +40,6 @@ def debug_i2i(
         prompt,
         steps=steps,
         guidance=guidance,
-        strength=strength,
         seed=seed,
     )
 

@@ -98,7 +98,6 @@ class TestDebugI2I:
                 "prompt": "Restyle this character.",
                 "steps": "12",
                 "guidance": "3.5",
-                "strength": "0.7",
                 "seed": "9999",
             },
         )
@@ -114,7 +113,6 @@ class TestDebugI2I:
         assert call["prompt"] == "Restyle this character."
         assert call["steps"] == 12
         assert call["guidance"] == 3.5
-        assert call["strength"] == 0.7
         assert call["seed"] == 9999
 
     def test_returns_404_for_unknown_source_id(self, client) -> None:
