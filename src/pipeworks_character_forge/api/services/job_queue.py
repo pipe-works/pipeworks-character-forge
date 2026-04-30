@@ -53,9 +53,7 @@ class JobQueue:
         if self._thread is not None and self._thread.is_alive():
             return
         self._stop.clear()
-        self._thread = threading.Thread(
-            target=self._worker, daemon=True, name="pw-forge-jobs"
-        )
+        self._thread = threading.Thread(target=self._worker, daemon=True, name="pw-forge-jobs")
         self._thread.start()
         logger.info("JobQueue worker started")
 

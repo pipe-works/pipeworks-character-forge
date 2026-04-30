@@ -14,7 +14,6 @@ from pipeworks_character_forge.api.services.pipeline_orchestrator import (
 )
 from pipeworks_character_forge.api.services.run_store import RunParams, RunStore
 from pipeworks_character_forge.core.config import config
-
 from tests._fakes import FakeFlux2KleinManager
 
 
@@ -102,7 +101,7 @@ class TestRunFull:
         # No trigger word, so the caption is just the prompt verbatim.
         assert text == turnaround.prompt
 
-    def test_image_filenames_follow_NN_slot_pattern(self, orchestrator, runs_dir):
+    def test_image_filenames_follow_nn_slot_pattern(self, orchestrator, runs_dir):
         run_id = _seed_run(orchestrator)
         orchestrator.run_full(run_id)
 
@@ -176,9 +175,7 @@ class TestRegenerateSlot:
         orchestrator.run_full(run_id)
 
         # Capture which file the manager last received.
-        sizes_before = [
-            call["ref_size"] for call in orchestrator.manager.calls if call["ref_size"]
-        ]
+        sizes_before = [call["ref_size"] for call in orchestrator.manager.calls if call["ref_size"]]
         assert sizes_before  # at least some calls happened
 
         orchestrator.regenerate_slot(run_id, "running")

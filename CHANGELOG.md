@@ -25,20 +25,6 @@ All notable changes to this project will be documented in this file.
   against.
 - Captions written as `NN_<slot>.txt` next to each leaf image; trigger
   word is prepended when set.
-
-### Fixed
-
-- `deploy/install.sh` health probe now hits the backend over plain HTTP
-  (`http://127.0.0.1:8410/api/health`) — previously used `https://`
-  which always failed because nginx terminates TLS upstream of the
-  backend.
-- `deploy/install.sh` pre-flight now exec's the venv's python as the
-  `pipeworks` systemd user. Catches the pyenv-private-home trap
-  (`status=203/EXEC`) before cert + nginx + systemd are touched and
-  prints a rebuild recipe pointing at `/opt/python/3.12.13`.
-
-### Added
-
 - End-to-end nginx proxy check in `deploy/install.sh`: after the
   backend responds, the script also probes
   `https://forge.pipeworks.luminal.local/api/health` via
@@ -57,3 +43,14 @@ All notable changes to this project will be documented in this file.
 - Deploy plumbing under `deploy/`: systemd unit, nginx vhost for
   `forge.pipeworks.luminal.local`, env example.
 - Unit tests covering slot-catalog loading and uniqueness invariants.
+
+### Fixed
+
+- `deploy/install.sh` health probe now hits the backend over plain HTTP
+  (`http://127.0.0.1:8410/api/health`) — previously used `https://`
+  which always failed because nginx terminates TLS upstream of the
+  backend.
+- `deploy/install.sh` pre-flight now exec's the venv's python as the
+  `pipeworks` systemd user. Catches the pyenv-private-home trap
+  (`status=203/EXEC`) before cert + nginx + systemd are touched and
+  prints a rebuild recipe pointing at `/opt/python/3.12.13`.

@@ -24,7 +24,6 @@ from pipeworks_character_forge.api.services.pipeline_orchestrator import (
 )
 from pipeworks_character_forge.api.services.run_store import RunStore
 from pipeworks_character_forge.core.config import config
-
 from tests._fakes import FakeFlux2KleinManager
 
 
@@ -88,9 +87,7 @@ def client(runs_dir):
     catalog = slot_catalog.load_catalog()
     run_store = RunStore(runs_dir)
     fake_manager = FakeFlux2KleinManager(config)
-    orchestrator = PipelineOrchestrator(
-        manager=fake_manager, run_store=run_store, catalog=catalog
-    )
+    orchestrator = PipelineOrchestrator(manager=fake_manager, run_store=run_store, catalog=catalog)
     sync_queue = _SynchronousJobQueue(orchestrator)
 
     app.state.manager = fake_manager
@@ -171,17 +168,13 @@ class TestCreateRun:
         assert smiling.prompt == "OVERRIDDEN smile prompt"
 
         caption_path = client.run_store.run_dir(run_id) / smiling.caption
-        assert caption_path.read_text(encoding="utf-8").strip() == (
-            "trgr, OVERRIDDEN smile prompt"
-        )
+        assert caption_path.read_text(encoding="utf-8").strip() == ("trgr, OVERRIDDEN smile prompt")
 
 
 class TestGetRun:
     def test_returns_full_manifest(self, client):
         source_id = _upload_source(client)
-        run_id = client.post(
-            "/api/runs", json={"source_id": source_id}
-        ).json()["run_id"]
+        run_id = client.post("/api/runs", json={"source_id": source_id}).json()["run_id"]
 
         response = client.get(f"/api/runs/{run_id}")
         assert response.status_code == 200
@@ -211,9 +204,7 @@ class TestListRuns:
 class TestRegenerateSlot:
     def test_regenerates_one_slot_with_optional_prompt_override(self, client):
         source_id = _upload_source(client)
-        run_id = client.post(
-            "/api/runs", json={"source_id": source_id}
-        ).json()["run_id"]
+        run_id = client.post("/api/runs", json={"source_id": source_id}).json()["run_id"]
 
         before = client.run_store.load(run_id).slots["turnaround"]
         before_calls = len(client.fake_manager.calls)
@@ -239,9 +230,7 @@ class TestRegenerateSlot:
 
     def test_unknown_slot_returns_404(self, client):
         source_id = _upload_source(client)
-        run_id = client.post(
-            "/api/runs", json={"source_id": source_id}
-        ).json()["run_id"]
+        run_id = client.post("/api/runs", json={"source_id": source_id}).json()["run_id"]
 
         response = client.post(
             f"/api/runs/{run_id}/slots/nonexistent_slot/regenerate",
