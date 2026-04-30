@@ -1,87 +1,101 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
   <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>PipeWorks Character Forge</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pipe-Works · Character Forge</title>
     <link rel="stylesheet" href="/static/css/pipe-works-fonts.css" />
     <link rel="stylesheet" href="/static/css/pipe-works-base.css" />
     <link rel="stylesheet" href="/static/css/forge.css" />
   </head>
   <body>
-    <header class="forge-header">
-      <div class="forge-header__title">
-        <h1>PipeWorks Character Forge</h1>
-        <p class="forge-tagline">
-          One source image → 25-image character dataset for LoRA training.
-        </p>
-      </div>
-      <div class="forge-header__status" id="forge-run-status">
-        <span class="forge-run-state" data-state="idle">idle</span>
-        <code class="forge-run-id" id="forge-run-id"></code>
-      </div>
-    </header>
+    <div class="app-shell">
+      <header class="app-header">
+        <div class="app-header__logo">
+          <span class="app-header__logo-icon">⚒</span>
+          <span class="app-header__title">Character Forge</span>
+        </div>
+        <span class="app-header__subtitle">PIPE-WORKS · CHARACTER FORGE INSTRUMENT</span>
+        <span class="app-header__version" id="app-version"></span>
 
-    <main class="forge-layout">
-      <aside class="forge-source-panel">
-        <section class="forge-section">
-          <h2>Source image</h2>
-          <label class="forge-source-drop" id="source-drop">
-            <input type="file" id="source-file" accept="image/*" hidden />
-            <div class="forge-source-empty" id="source-empty">
-              <p>Drop a character image, or click to browse.</p>
-              <p class="forge-source-hint">PNG / JPG, up to 25 MiB.</p>
+        <nav class="app-header__nav">
+          <span class="badge badge--muted forge-run-state" data-state="idle">idle</span>
+          <code class="forge-run-id" id="forge-run-id"></code>
+          <button class="btn btn--secondary btn--sm" id="btn-theme-toggle">◑ Light</button>
+        </nav>
+      </header>
+
+      <main class="app-main forge-layout">
+        <aside class="panel forge-source-panel">
+          <section class="forge-section">
+            <h2 class="panel__heading">Source image</h2>
+            <label class="forge-source-drop" id="source-drop">
+              <input type="file" id="source-file" accept="image/*" hidden />
+              <div class="forge-source-empty" id="source-empty">
+                <p>Drop a character image, or click to browse.</p>
+                <p class="forge-source-hint">PNG / JPG, up to 25 MiB.</p>
+              </div>
+              <div class="forge-source-preview" id="source-preview" hidden>
+                <img id="source-image" alt="Source character" />
+                <p class="forge-source-info" id="source-info"></p>
+              </div>
+            </label>
+          </section>
+
+          <section class="forge-section">
+            <h2 class="panel__heading">Generation</h2>
+            <label class="forge-field">
+              <span class="forge-field__label">Trigger word</span>
+              <input
+                class="input"
+                type="text"
+                id="trigger-word"
+                placeholder="mychar"
+                spellcheck="false"
+              />
+              <span class="forge-hint">Prepended to every caption file at export time.</span>
+            </label>
+            <div class="forge-field-row">
+              <label class="forge-field">
+                <span class="forge-field__label">Seed</span>
+                <input class="input" type="number" id="seed" value="1234" />
+              </label>
+              <label class="forge-field">
+                <span class="forge-field__label">Steps</span>
+                <input class="input" type="number" id="steps" value="28" min="1" max="200" />
+              </label>
+              <label class="forge-field">
+                <span class="forge-field__label">Guidance</span>
+                <input
+                  class="input"
+                  type="number"
+                  id="guidance"
+                  value="4.5"
+                  step="0.1"
+                  min="0"
+                />
+              </label>
             </div>
-            <div class="forge-source-preview" id="source-preview" hidden>
-              <img id="source-image" alt="Source character" />
-              <p class="forge-source-info" id="source-info"></p>
-            </div>
-          </label>
-        </section>
+          </section>
 
-        <section class="forge-section">
-          <h2>Generation</h2>
-          <label class="forge-field">
-            Trigger word
-            <input
-              type="text"
-              id="trigger-word"
-              placeholder="mychar"
-              spellcheck="false"
-            />
-            <span class="forge-hint">
-              Prepended to every caption file at export time.
-            </span>
-          </label>
-          <div class="forge-field-row">
-            <label class="forge-field">
-              Seed
-              <input type="number" id="seed" value="1234" />
-            </label>
-            <label class="forge-field">
-              Steps
-              <input type="number" id="steps" value="28" min="1" max="200" />
-            </label>
-            <label class="forge-field">
-              Guidance
-              <input type="number" id="guidance" value="4.5" step="0.1" min="0" />
-            </label>
-          </div>
-        </section>
+          <section class="forge-section">
+            <button type="button" id="generate-all" class="btn btn--primary" disabled>
+              Generate all 25
+            </button>
+            <p id="run-error" class="forge-run-error" hidden></p>
+          </section>
+        </aside>
 
-        <section class="forge-section">
-          <button type="button" id="generate-all" class="forge-btn forge-btn--primary" disabled>
-            Generate all 25
-          </button>
-          <p id="queue-status" class="forge-queue-status"></p>
-          <p id="run-error" class="forge-run-error" hidden></p>
+        <section class="forge-grid-pane">
+          <div id="slot-grid" class="forge-slot-grid"></div>
         </section>
-      </aside>
+      </main>
 
-      <section class="forge-grid-pane">
-        <div id="slot-grid" class="forge-slot-grid"></div>
-      </section>
-    </main>
+      <footer class="status-bar">
+        <span class="status-bar__text" id="status-text">Ready — drop a source image to begin.</span>
+        <span class="status-bar__text forge-status-progress" id="queue-status"></span>
+      </footer>
+    </div>
 
     <script type="module" src="/static/js/app.js"></script>
   </body>

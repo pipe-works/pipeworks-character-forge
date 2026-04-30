@@ -6,6 +6,18 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- Light/dark theme toggle in the app header. Persists to
+  `localStorage` under the `pw-theme` key, matching
+  `pipeworks-image-generator`'s convention so a user's preference
+  follows them across the PipeWorks app suite. Default is dark.
+- App-shell layout (`.app-header`, `.app-main`, `.status-bar`)
+  consumed verbatim from `pipe-works-base.css`. Header now carries
+  the brand mark, instrument subtitle, version chip, run-state
+  badge, run-id, and the theme toggle. Status bar at the bottom
+  shows the current run progress.
+- Version chip in the header — best-effort `GET /api/health` on
+  load, so the build that's actually serving you is visible at a
+  glance.
 - `pw-forge make-dataset <run-id>` console subcommand. Copies the 25
   leaf `NN_<slot>.png` + `NN_<slot>.txt` pairs from a completed run
   into `<run-dir>/dataset/` (excluding `source.png`, `manifest.json`,
@@ -65,6 +77,13 @@ All notable changes to this project will be documented in this file.
 - Deploy plumbing under `deploy/`: systemd unit, nginx vhost for
   `forge.pipeworks.luminal.local`, env example.
 - Unit tests covering slot-catalog loading and uniqueness invariants.
+
+### Changed
+
+- `forge.css` rewritten on top of `pipe-works-base.css` design tokens
+  (`--col-*`, `--font-*`, `--sp-*`, `--radius-*`, `--text-*`).
+  Previously it shipped a parallel set of `--color-*` variables that
+  ignored the design system and hard-coded the dark palette.
 
 ### Fixed
 
