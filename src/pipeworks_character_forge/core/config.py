@@ -15,6 +15,12 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 REPO_ROOT = Path(__file__).resolve().parents[3]
 PACKAGE_ROOT = Path(__file__).resolve().parent.parent
 
+# Runtime mutable state lives outside the repo by default, mirroring the
+# pipeworks-image-generator convention (PIPEWORKS_MODELS_DIR /
+# PIPEWORKS_OUTPUTS_DIR pointed at /srv/work/pipeworks/runtime/...).
+# Keeps multi-GB HF caches and per-run output dirs out of the working tree.
+RUNTIME_ROOT = Path("/srv/work/pipeworks/runtime/character-forge")
+
 
 class PipeworksForgeConfig(BaseSettings):
     """Pydantic-settings model holding all runtime configuration."""
@@ -30,8 +36,8 @@ class PipeworksForgeConfig(BaseSettings):
     server_port: int = 8410
 
     repo_root: Path = REPO_ROOT
-    runs_dir: Path = REPO_ROOT / "runs"
-    models_dir: Path = REPO_ROOT / "models"
+    runs_dir: Path = RUNTIME_ROOT / "runs"
+    models_dir: Path = RUNTIME_ROOT / "models"
     static_dir: Path = PACKAGE_ROOT / "static"
     templates_dir: Path = PACKAGE_ROOT / "templates"
     data_dir: Path = PACKAGE_ROOT / "data"

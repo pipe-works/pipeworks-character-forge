@@ -37,14 +37,14 @@ htmlcov/
 # OS
 .DS_Store
 
-# ML model weights (large; cached under models/)
-models/
+# ML model weights (large; cached under /srv/work/pipeworks/runtime/character-forge/models/)
 *.pt
 *.pth
 *.bin
 *.safetensors
 *.ckpt
 
-# Generated runs
-runs/
-!runs/.gitkeep
+# Defensive: keep accidentally-created in-repo runtime dirs out of git.
+# Real runtime state lives at /srv/work/pipeworks/runtime/character-forge/.
+/models/
+/runs/
