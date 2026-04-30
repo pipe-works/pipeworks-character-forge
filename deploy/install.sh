@@ -65,9 +65,36 @@ if ! "$VENV/bin/python" -c 'import torch, diffusers' >/dev/null 2>&1; then
     $VENV/bin/pip install -e '$REPO[ml]'"
 fi
 
+# Confirm the systemd user can actually exec the venv's python. A common
+# trap: the venv was created with a python under your \$HOME (e.g. pyenv at
+# ~/.pyenv), \$HOME is mode 0700, and 'pipeworks' can't traverse the
+# symlink target — systemd then crash-loops with status=203/EXEC. Catch
+# this in pre-flight rather than after enabling the unit.
+if ! sudo -u pipeworks "$VENV/bin/python" --version >/dev/null 2>&1; then
+    target=$(readlink -f "$VENV/bin/python" 2>/dev/null || true)
+    die "The 'pipeworks' user cannot exec $VENV/bin/python.
+    Resolved interpreter: ${target:-unknown}
+
+    This usually means the venv was built against a python under your
+    \$HOME (mode 0700) — e.g. pyenv at ~/.pyenv. Rebuild against a
+    system-accessible interpreter such as /opt/python/3.12.13/bin/python3.12:
+
+        sudo systemctl disable --now $SERVICE 2>/dev/null || true
+        sudo rm -rf $VENV
+        /opt/python/3.12.13/bin/python3.12 -m venv $VENV
+        sudo chown -R pipeworks:pipeworks $VENV
+        sudo chmod -R g+w $VENV
+        sudo chmod g+s $VENV
+        $VENV/bin/pip install --upgrade pip
+        $VENV/bin/pip install -e '$REPO[dev,ml]'
+
+    Then re-run this script."
+fi
+
 ok "User in 'pipeworks' group"
 ok "mkcert available"
 ok "Repo + venv + [ml] extras OK"
+ok "Venv exec'able by 'pipeworks' systemd user"
 
 # -- 2. TLS cert ------------------------------------------------------------
 
@@ -146,14 +173,24 @@ step "Health probe"
 
 # Give uvicorn a moment to bind.
 for _ in 1 2 3 4 5 6 7 8 9 10; do
-    if curl -sk --max-time 2 "https://127.0.0.1:$PORT/api/health" >/dev/null 2>&1; then
+    if curl -s --max-time 2 "http://127.0.0.1:$PORT/api/health" >/dev/null 2>&1; then
         break
     fi
     sleep 1
 done
 
-if curl -sk --max-time 5 "https://127.0.0.1:$PORT/api/health" | grep -q '"status":"ok"'; then
-    ok "Service responding on https://127.0.0.1:$PORT/api/health"
+if curl -s --max-time 5 "http://127.0.0.1:$PORT/api/health" | grep -q '"status":"ok"'; then
+    ok "Service responding on http://127.0.0.1:$PORT/api/health"
+
+    # Optional end-to-end check through nginx (cert + vhost + proxy).
+    if curl -sk --max-time 5 \
+            --resolve "$HOST:443:127.0.0.1" \
+            "https://$HOST/api/health" 2>/dev/null | grep -q '"status":"ok"'; then
+        ok "Service responding through nginx on https://$HOST/api/health"
+    else
+        warn "Backend OK but nginx proxy did not respond healthily."
+        warn "Check sudo nginx -t && sudo journalctl -u nginx -n 20 --no-pager"
+    fi
 else
     warn "Service did not respond healthily within 10 s."
     warn "Check journalctl -u $SERVICE -n 50 --no-pager"
