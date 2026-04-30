@@ -33,7 +33,7 @@ class PipeworksForgeConfig(BaseSettings):
     )
 
     server_host: str = "127.0.0.1"
-    server_port: int = 8410
+    server_port: int = 8420
 
     repo_root: Path = REPO_ROOT
     runs_dir: Path = RUNTIME_ROOT / "runs"

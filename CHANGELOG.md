@@ -6,6 +6,16 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- Frontend: vanilla ES modules + plain HTML, no build step. Left
+  panel handles source upload + run params + trigger word + the
+  Generate-all button; main pane is the 26-tile gallery (promoted
+  stylized base + 25 leaves) with per-tile prompt editing and a
+  Regenerate button. Tiles update from a `ProgressPoller` that polls
+  `GET /api/runs/{id}` every 2 s and dispatches `forge:manifest`
+  CustomEvents to the grid + status panel.
+- Imports the shared `pipe-works-base.css` design tokens + Crimson
+  Text / Courier Prime font set used across the PipeWorks app
+  ecosystem; `forge.css` only contains layout-specific rules.
 - 25-slot pipeline orchestrator (`api/services/pipeline_orchestrator.py`):
   stylized base first, then each leaf branches off it in display order;
   every i2i call gets a deterministic seed of
@@ -46,8 +56,20 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+- Backend port moved 8410 → **8420** to dodge a collision with
+  `pipeworks-pipeworks-org-author.service`, which is hard-coded to
+  `--port 8410` and was claiming the socket whenever character-forge
+  was restarting. Symptom on the operator side was nginx proxying to
+  the author service whenever forge crashed, plus a permanent
+  `address already in use` on systemd start. Updated:
+  `core/config.py` default, `deploy/env/character-forge.env.example`,
+  `deploy/nginx/forge.pipeworks.luminal.local`, `deploy/install.sh`
+  pre-flight `PORT`. Operators on existing deploys must additionally
+  edit the live `/etc/pipeworks/character-forge/character-forge.env`
+  to set `PIPEWORKS_FORGE_SERVER_PORT=8420` since `install.sh` does
+  not rewrite an existing env file.
 - `deploy/install.sh` health probe now hits the backend over plain HTTP
-  (`http://127.0.0.1:8410/api/health`) — previously used `https://`
+  (`http://127.0.0.1:8420/api/health`) — previously used `https://`
   which always failed because nginx terminates TLS upstream of the
   backend.
 - `deploy/install.sh` pre-flight now exec's the venv's python as the

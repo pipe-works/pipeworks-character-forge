@@ -20,13 +20,15 @@ server {
 
     client_max_body_size 25m;
 
+    # One catch-all proxy. A previous version had a separate
+    # `location /api/runs/ { ... }` block intended for SSE streaming,
+    # but we ended up polling instead — and the trailing slash on that
+    # location triggered nginx's directory-style implicit 301 from
+    # /api/runs -> /api/runs/, which combined with FastAPI's
+    # redirect_slashes=True produced an infinite redirect loop on every
+    # POST /api/runs from the frontend.
     location / {
-        proxy_pass http://127.0.0.1:8410;
-    }
-
-    location /api/runs/ {
-        proxy_pass http://127.0.0.1:8410;
-        proxy_buffering off;
+        proxy_pass http://127.0.0.1:8420;
         proxy_read_timeout 1h;
     }
 }
