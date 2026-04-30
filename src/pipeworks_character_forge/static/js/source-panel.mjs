@@ -177,14 +177,17 @@ export function createSourcePanel({ slotGrid, onRunStart, onRunCancelled }) {
   });
 
   function _refreshGenerateButtonLabel() {
-    const n = _selectedSlotIds.length;
+    // Selection-driven mode only kicks in when there's a run to
+    // regenerate against. Without a run, ignore selection state — the
+    // tile checkboxes are disabled in that case anyway, but be
+    // defensive in case a stale state slips through.
+    const n = _runId ? _selectedSlotIds.length : 0;
     if (n === 0) {
       $generate.textContent = "Generate all 25";
       $generate.disabled = _busy || !_sourceId;
     } else {
       $generate.textContent = `Regenerate selected (${n})`;
-      // Batch regen needs an existing run.
-      $generate.disabled = _busy || !_runId;
+      $generate.disabled = _busy;
     }
   }
 
