@@ -1,0 +1,947 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   pipe-works-base.css
+   ─────────────────────────────────────────────────────────────────────────
+   Pipe-Works Design System — Shared Foundation
+
+   This file provides the unified design tokens, reset, and common
+   components for ALL Pipe-Works application-mode tools (dashboards,
+   generators, labs).
+
+   CANONICAL SOURCE: Axis Descriptor Lab (styles.css)
+   EXTENDED WITH:    Name Generator editorial fonts + code tokens
+
+   CONTENTS
+   ────────
+   1. Reset
+   2. Design Tokens (Dark Theme — default)
+   3. Light Theme Overrides
+   4. Global Styles
+   5. App Shell (header, main, status bar)
+   6. Panels
+   7. Buttons
+   8. Inputs & Controls
+   9. Tables
+   10. Cards
+   11. Badges
+   12. Modals
+   13. Code & Preformatted
+   14. Dividers
+   15. Spinner
+   16. Scrollbars
+   17. Tooltips
+   18. Utilities
+   19. Accessibility & Motion
+   20. Responsive Breakpoints
+
+   USAGE
+   ─────
+   1. Include pipe-works-fonts.css BEFORE this file (font-face declarations)
+   2. Include this file as the foundation
+   3. Include your app-specific CSS AFTER this file
+
+   THEME SWITCHING
+   ───────────────
+   Set data-theme="light" on <html> to activate light mode.
+   Dark mode is the default (no attribute needed).
+
+   FONT PATHS
+   ──────────
+   Font-face declarations are in a separate pipe-works-fonts.css file.
+   Each project must configure the font path prefix for its own structure.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   1. RESET
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+img, picture, video, canvas, svg {
+  display: block;
+  max-width: 100%;
+}
+
+input, button, textarea, select {
+  font: inherit;
+  color: inherit;
+}
+
+ul, ol { list-style: none; }
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   2. DESIGN TOKENS — DARK THEME (default)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* ── Palette ──────────────────────────────────────────────────────────── */
+  --col-bg:          #111214;          /* page background                  */
+  --col-surface:     #1c1e22;          /* panel / card background          */
+  --col-surface-2:   #24272d;          /* elevated surface (inputs, nests) */
+  --col-border:      #2e3138;          /* subtle dividers                  */
+  --col-border-hi:   #444952;          /* focused / highlighted borders    */
+
+  --col-text:        #d4d7dc;          /* primary text                     */
+  --col-text-muted:  #6b7280;          /* secondary / label text           */
+  --col-text-dim:    #3d4149;          /* placeholders, very faint         */
+
+  --col-accent:      #f59e0b;          /* amber — primary accent           */
+  --col-accent-dim:  #b45309;          /* darker amber for pressed states  */
+  --col-accent-glow: rgba(245, 158, 11, 0.15);  /* subtle highlight bg    */
+
+  --col-ok:          #22c55e;          /* green — success / valid          */
+  --col-err:         #ef4444;          /* red — error                      */
+  --col-warn:        #fb923c;          /* orange — warning                 */
+  --col-info:        #60a5fa;          /* blue — informational             */
+
+  /* Diff colours (optional — include if your app has diff views) */
+  --col-diff-add:       rgba(34, 197, 94, 0.18);
+  --col-diff-del:       rgba(239, 68, 68, 0.18);
+  --col-diff-add-text:  #86efac;
+  --col-diff-del-text:  #fca5a5;
+
+  /* Code / editor surfaces */
+  --col-code-bg:        #0d0f12;
+  --col-code-text:      #d4d7dc;
+  --col-code-inline:    #f59e0b;
+
+  /* Button text (needs to contrast against accent fill) */
+  --col-button-text:    #111111;
+
+  /* Modal backdrop */
+  --col-backdrop:       rgba(0, 0, 0, 0.55);
+
+  /* Tooltip */
+  --col-tooltip-bg:     #2a2d34;
+  --col-tooltip-text:   #e2e8f0;
+  --col-tooltip-border: #3d4149;
+
+  /* ── Typography ───────────────────────────────────────────────────────── */
+
+  /* App-mode fonts (monospace-dominant for tools/dashboards) */
+  --font-mono: "JetBrains Mono", "Fira Code", "Cascadia Code", "Consolas", monospace;
+  --font-ui:   system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  /* Editorial fonts (print-workshop aesthetic for branded content) */
+  --font-masthead:  "IM Fell English SC", serif;
+  --font-headline:  "Libre Baskerville", serif;
+  --font-body:      "Crimson Text", serif;
+  --font-record:    "Courier Prime", ui-monospace, SFMono-Regular, Menlo, Monaco,
+                    Consolas, "Liberation Mono", monospace;
+  --font-symbols:   "IM Fell English", serif;
+  --font-accent:    "Special Elite", ui-monospace, SFMono-Regular, Menlo, Monaco,
+                    Consolas, "Liberation Mono", monospace;
+
+  /* Type scale */
+  --text-xs:    0.70rem;               /* labels, badges, meta             */
+  --text-sm:    0.80rem;               /* secondary text, table cells      */
+  --text-base:  0.875rem;              /* body text (14px at default)      */
+  --text-lg:    1.0rem;                /* headings, titles                 */
+  --text-xl:    1.15rem;               /* large headings                   */
+
+  /* ── Spacing ──────────────────────────────────────────────────────────── */
+  --sp-1: 0.25rem;                     /* 4px  — tight gaps, badge pad     */
+  --sp-2: 0.5rem;                      /* 8px  — default gap, input pad    */
+  --sp-3: 0.75rem;                     /* 12px — panel pad, section gaps   */
+  --sp-4: 1rem;                        /* 16px — major gaps                */
+  --sp-6: 1.5rem;                      /* 24px — large spacing             */
+
+  /* ── Layout ───────────────────────────────────────────────────────────── */
+  --header-h:    2.75rem;
+  --statusbar-h: 1.75rem;
+  --panel-pad:   1rem;
+
+  /* ── Radii ────────────────────────────────────────────────────────────── */
+  --radius-sm:  4px;                   /* inputs, buttons, badges          */
+  --radius-md:  8px;                   /* cards, preview sections          */
+  --radius-lg:  12px;                  /* modals, large cards              */
+
+  /* ── Animation ────────────────────────────────────────────────────────── */
+  --transition-fast: 100ms ease;
+  --transition-med:  200ms ease;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   3. LIGHT THEME OVERRIDES
+   ─────────────────────────────────────────────────────────────────────────
+   Activated by setting data-theme="light" on <html>.
+   Warm paper tones, amber accent preserved for continuity.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+[data-theme="light"] {
+  --col-bg:          #f4f1ec;
+  --col-surface:     #faf8f5;
+  --col-surface-2:   #efece6;
+  --col-border:      #d6d0c6;
+  --col-border-hi:   #b8b0a4;
+
+  --col-text:        #2c2a26;
+  --col-text-muted:  #7a7568;
+  --col-text-dim:    #c4bfb5;
+
+  --col-accent:      #c27b0a;
+  --col-accent-dim:  #a06508;
+  --col-accent-glow: rgba(194, 123, 10, 0.12);
+
+  --col-ok:          #16a34a;
+  --col-err:         #dc2626;
+  --col-warn:        #ea580c;
+  --col-info:        #2563eb;
+
+  --col-diff-add:       rgba(22, 163, 74, 0.14);
+  --col-diff-del:       rgba(220, 38, 38, 0.14);
+  --col-diff-add-text:  #166534;
+  --col-diff-del-text:  #991b1b;
+
+  --col-code-bg:        #ffffff;
+  --col-code-text:      #2c2a26;
+  --col-code-inline:    #c27b0a;
+
+  --col-button-text:    #ffffff;
+
+  --col-backdrop:       rgba(0, 0, 0, 0.25);
+
+  --col-tooltip-bg:     #2c2a26;
+  --col-tooltip-text:   #faf8f5;
+  --col-tooltip-border: #1a1816;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   4. GLOBAL STYLES
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+html {
+  height: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  height: 100%;
+  margin: 0;
+  background: var(--col-bg);
+  color: var(--col-text);
+  font-family: var(--font-ui);
+  font-size: var(--text-base);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+:focus-visible {
+  outline: 2px solid var(--col-accent);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: var(--col-accent-glow);
+}
+
+/* Monospace family for all structural/interactive elements */
+h1, h2, h3, h4, h5, h6,
+button, .tab,
+input, select, textarea,
+table, code {
+  font-family: var(--font-mono);
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   5. APP SHELL — Header, Main, Status Bar
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.app-header {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+  height: var(--header-h);
+  padding: 0 var(--sp-6);
+  background: var(--col-surface);
+  border-bottom: 1px solid var(--col-border);
+  z-index: 100;
+  flex-shrink: 0;
+}
+
+.app-header__title {
+  font-family: var(--font-mono);
+  font-size: var(--text-lg);
+  font-weight: 700;
+  color: var(--col-accent);
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.app-header__subtitle {
+  font-size: var(--text-xs);
+  color: var(--col-text-muted);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.app-main {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--sp-4);
+}
+
+.status-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  height: var(--statusbar-h);
+  padding: 0 var(--sp-4);
+  background: var(--col-surface);
+  border-top: 1px solid var(--col-border);
+  z-index: 100;
+  flex-shrink: 0;
+}
+
+.status-bar__text {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--col-text-muted);
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   6. PANELS
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.panel {
+  background: var(--col-surface);
+  overflow-y: auto;
+  padding: var(--panel-pad);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+
+.panel__heading {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--col-accent);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: var(--sp-1);
+}
+
+.panel--dark {
+  background: var(--col-bg);
+}
+
+.panel--elevated {
+  background: var(--col-surface-2);
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   7. BUTTONS
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-1);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  padding: var(--sp-1) var(--sp-3);
+  transition:
+    background var(--transition-fast),
+    border-color var(--transition-fast),
+    color var(--transition-fast),
+    opacity var(--transition-fast);
+  white-space: nowrap;
+}
+
+.btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Primary: amber fill */
+.btn--primary {
+  background: var(--col-accent);
+  color: var(--col-button-text);
+}
+.btn--primary:hover:not(:disabled) {
+  background: var(--col-accent-dim);
+}
+
+/* Secondary: outlined */
+.btn--secondary {
+  background: transparent;
+  border-color: var(--col-border-hi);
+  color: var(--col-text);
+}
+.btn--secondary:hover:not(:disabled) {
+  background: var(--col-surface-2);
+  border-color: var(--col-accent);
+  color: var(--col-accent);
+}
+
+/* Active state for secondary (toggle on) */
+.btn--secondary.is-active {
+  border-color: var(--col-accent);
+  color: var(--col-accent);
+  background: var(--col-accent-glow);
+}
+
+/* Ghost: no border */
+.btn--ghost {
+  background: transparent;
+  color: var(--col-text-muted);
+}
+.btn--ghost:hover:not(:disabled) {
+  color: var(--col-text);
+}
+
+/* Size modifiers */
+.btn--sm {
+  font-size: var(--text-xs);
+  padding: 2px var(--sp-2);
+}
+
+.btn--full {
+  width: 100%;
+}
+
+/* Icon-only button */
+.btn--icon {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  background: transparent;
+  border: 1px solid var(--col-border);
+  color: var(--col-text);
+  font-size: 1.1rem;
+}
+.btn--icon:hover:not(:disabled) {
+  border-color: var(--col-accent);
+  color: var(--col-accent);
+  background: var(--col-accent-glow);
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   8. INPUTS & CONTROLS
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.input, .select {
+  background: var(--col-surface-2);
+  border: 1px solid var(--col-border);
+  border-radius: var(--radius-sm);
+  color: var(--col-text);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  padding: var(--sp-1) var(--sp-2);
+  transition: border-color var(--transition-fast);
+}
+
+.input:focus, .select:focus {
+  border-color: var(--col-accent);
+  outline: none;
+}
+
+.input--sm { width: 120px; }
+
+.select {
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%236b7280'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  padding-right: 24px;
+}
+
+/* Code editor textarea */
+.code-editor {
+  width: 100%;
+  background: var(--col-code-bg);
+  border: 1px solid var(--col-border);
+  border-radius: var(--radius-sm);
+  color: var(--col-code-text);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  line-height: 1.6;
+  padding: var(--sp-2) var(--sp-3);
+  resize: vertical;
+  transition: border-color var(--transition-fast);
+}
+
+.code-editor:focus {
+  border-color: var(--col-accent);
+  outline: none;
+}
+
+/* Control label */
+.control-label {
+  display: block;
+  font-size: var(--text-xs);
+  color: var(--col-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: var(--sp-1);
+}
+
+/* Control row (horizontal label + input) */
+.control-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+}
+.control-row .control-label {
+  margin-bottom: 0;
+  flex-shrink: 0;
+}
+
+/* Range slider */
+.range-input {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  background: var(--col-border);
+  border: none;
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+  accent-color: var(--col-accent);
+  padding: 0;
+}
+
+.range-input::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--col-accent);
+  cursor: pointer;
+  border: 2px solid var(--col-bg);
+  transition: transform var(--transition-fast);
+}
+.range-input::-webkit-slider-thumb:hover {
+  transform: scale(1.25);
+}
+
+.range-input::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--col-accent);
+  cursor: pointer;
+  border: 2px solid var(--col-bg);
+  transition: transform var(--transition-fast);
+}
+.range-input::-moz-range-thumb:hover {
+  transform: scale(1.25);
+}
+.range-input::-moz-range-track {
+  height: 4px;
+  background: var(--col-border);
+  border-radius: 2px;
+  border: none;
+}
+
+/* Light theme slider thumb border */
+[data-theme="light"] .range-input::-webkit-slider-thumb {
+  border-color: var(--col-surface);
+}
+[data-theme="light"] .range-input::-moz-range-thumb {
+  border-color: var(--col-surface);
+}
+
+/* Checkbox */
+input[type="checkbox"] {
+  accent-color: var(--col-accent);
+  width: 1rem;
+  height: 1rem;
+  cursor: pointer;
+}
+
+/* Toggle label (checkbox + text) */
+.toggle-label {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  cursor: pointer;
+}
+
+.toggle-text {
+  font-size: var(--text-xs);
+  color: var(--col-text-muted);
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   9. TABLES
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+}
+
+th {
+  text-align: left;
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--col-text-muted);
+  padding: var(--sp-1) var(--sp-2);
+  border-bottom: 1px solid var(--col-border);
+  white-space: nowrap;
+}
+
+td {
+  padding: var(--sp-1) var(--sp-2);
+  border-bottom: 1px solid color-mix(in srgb, var(--col-border) 50%, transparent);
+  vertical-align: top;
+}
+
+/* Numeric columns */
+.col-numeric {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   10. CARDS
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.card {
+  border: 1px solid var(--col-border);
+  border-radius: var(--radius-lg);
+  padding: var(--sp-3);
+  background: var(--col-surface-2);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.card__heading {
+  margin: 0 0 var(--sp-2) 0;
+  font-size: 0.95rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--col-text-muted);
+}
+
+.card--compact {
+  border-radius: var(--radius-md);
+  padding: var(--sp-2);
+}
+
+.card--outlined {
+  background: color-mix(in srgb, var(--col-surface) 92%, var(--col-surface-2) 8%);
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   11. BADGES
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.badge {
+  display: inline-block;
+  border-radius: 3px;
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 1px 5px;
+  text-transform: uppercase;
+  vertical-align: middle;
+  background: var(--col-ok);
+  color: #111;
+}
+
+.badge--err   { background: var(--col-err);       color: #fff; }
+.badge--warn  { background: var(--col-warn);      color: #111; }
+.badge--info  { background: var(--col-info);       color: #fff; }
+.badge--muted { background: var(--col-surface-2); color: var(--col-text-muted); }
+.badge--active { background: var(--col-accent);   color: #111; }
+
+/* Light theme badge adjustments */
+[data-theme="light"] .badge       { color: #fff; }
+[data-theme="light"] .badge--warn { color: #fff; }
+[data-theme="light"] .badge--active {
+  background: #8b5e0a;
+  color: #fff;
+}
+[data-theme="light"] .badge--muted {
+  background: #d6d0c6;
+  color: #4a4640;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   12. MODALS
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.modal {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  z-index: 50;
+}
+
+.modal.hidden {
+  display: none;
+}
+
+.modal__backdrop {
+  position: absolute;
+  inset: 0;
+  background: var(--col-backdrop);
+}
+
+.modal__card {
+  position: relative;
+  background: var(--col-surface);
+  border: 1px solid var(--col-border);
+  border-radius: var(--radius-lg);
+  padding: var(--sp-4);
+  width: min(640px, 90vw);
+  z-index: 1;
+  box-shadow: 0 18px 32px rgba(0, 0, 0, 0.2);
+  display: grid;
+  gap: var(--sp-3);
+}
+
+.modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-2);
+}
+
+.modal__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--sp-2);
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   13. CODE & PREFORMATTED
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+code {
+  font-family: var(--font-mono);
+  color: var(--col-code-inline);
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+pre {
+  margin: 0;
+  padding: var(--sp-2) var(--sp-3);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--col-border);
+  background: var(--col-code-bg);
+  color: var(--col-code-text);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  line-height: 1.6;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+pre code {
+  color: inherit;
+}
+
+/* Output box (scrollable text output) */
+.output-box {
+  background: var(--col-code-bg);
+  border: 1px solid var(--col-border);
+  border-radius: var(--radius-sm);
+  color: var(--col-text);
+  font-family: var(--font-ui);
+  font-size: var(--text-base);
+  line-height: 1.7;
+  min-height: 120px;
+  max-height: 40vh;
+  overflow-y: auto;
+  padding: var(--sp-3) var(--sp-4);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   14. DIVIDERS
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.divider {
+  border: none;
+  border-top: 1px solid var(--col-border);
+  margin: var(--sp-3) 0;
+}
+
+.divider--dashed {
+  border-top-style: dashed;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   15. SPINNER
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.spinner {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--col-border-hi);
+  border-top-color: var(--col-accent);
+  border-radius: 50%;
+  animation: pw-spin 0.7s linear infinite;
+}
+
+@keyframes pw-spin {
+  to { transform: rotate(360deg); }
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   16. SCROLLBARS (WebKit + Firefox)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--col-border-hi); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--col-accent-dim); }
+
+[data-theme="light"] ::-webkit-scrollbar-thumb { background: var(--col-border); }
+[data-theme="light"] ::-webkit-scrollbar-thumb:hover { background: var(--col-border-hi); }
+
+/* Firefox */
+* {
+  scrollbar-color: var(--col-border-hi) transparent;
+  scrollbar-width: thin;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   17. TOOLTIPS
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.tooltip-bubble {
+  position: fixed;
+  z-index: 10000;
+  pointer-events: none;
+  background: var(--col-tooltip-bg);
+  color: var(--col-tooltip-text);
+  border: 1px solid var(--col-tooltip-border);
+  border-radius: var(--radius-sm);
+  padding: 6px 10px;
+  font-family: var(--font-ui);
+  font-size: var(--text-xs);
+  font-weight: 400;
+  line-height: 1.5;
+  text-transform: none;
+  letter-spacing: normal;
+  text-align: left;
+  white-space: normal;
+  word-wrap: break-word;
+  min-width: 180px;
+  max-width: 300px;
+  width: max-content;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.tooltip-arrow {
+  position: fixed;
+  z-index: 10001;
+  pointer-events: none;
+  width: 0;
+  height: 0;
+  border: 6px solid transparent;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   18. UTILITIES
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.hidden { display: none !important; }
+
+.u-sr-only {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+.u-nowrap { white-space: nowrap; }
+.u-muted  { color: var(--col-text-muted); }
+.u-dim    { color: var(--col-text-dim); }
+.u-ok     { color: var(--col-ok); }
+.u-err    { color: var(--col-err); }
+.u-warn   { color: var(--col-warn); }
+.u-accent { color: var(--col-accent); }
+
+.u-mono { font-family: var(--font-mono); }
+.u-ui   { font-family: var(--font-ui); }
+
+.placeholder-text {
+  color: var(--col-text-dim);
+  font-style: italic;
+  font-size: var(--text-xs);
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   19. ACCESSIBILITY & MOTION
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   20. RESPONSIVE BREAKPOINTS
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@media (max-width: 980px) {
+  /* Multi-column layouts collapse */
+}
+
+@media (max-width: 800px) {
+  /* Form grids go single-column */
+}
+
+@media (max-width: 640px) {
+  .app-header {
+    height: auto;
+    flex-wrap: wrap;
+    padding: var(--sp-2) var(--sp-4);
+    gap: var(--sp-2);
+  }
+}

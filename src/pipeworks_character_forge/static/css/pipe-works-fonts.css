@@ -1,0 +1,191 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   pipe-works-fonts.css
+   ─────────────────────────────────────────────────────────────────────────
+   Self-hosted @font-face declarations for the Pipe-Works design system.
+
+   All fonts are Google Fonts (Open Font License).
+
+   FONT PATH CONFIGURATION
+   ───────────────────────
+   This file uses a CSS custom property --font-path for the base path
+   to font files. Override this in your app's CSS BEFORE importing
+   this file, or simply edit the path below.
+
+   Default: "/static/fonts"
+
+   Example overrides:
+     :root { --font-path: "../assets/fonts"; }   (website)
+     :root { --font-path: "/static/fonts"; }      (webapp)
+
+   IMPORTANT: CSS custom properties cannot be used in @font-face src URLs.
+   Each project MUST either:
+     1. Copy this file and adjust paths, OR
+     2. Use a build step to replace the path prefix
+
+   The paths below use "/static/fonts/" as the default convention for
+   Pipe-Works webapp projects.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   COURIER PRIME — Records, ledger, monospace data
+   Weights: 400, 700 | Styles: normal, italic, bold-italic
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@font-face {
+  font-family: "Courier Prime";
+  src: url("/static/fonts/CourierPrime-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Courier Prime";
+  src: url("/static/fonts/CourierPrime-Italic.woff2") format("woff2");
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Courier Prime";
+  src: url("/static/fonts/CourierPrime-Bold.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Courier Prime";
+  src: url("/static/fonts/CourierPrime-BoldItalic.woff2") format("woff2");
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   CRIMSON TEXT — Body text, editorial prose
+   Weights: 400, 600, 700 | Styles: normal, italic
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@font-face {
+  font-family: "Crimson Text";
+  src: url("/static/fonts/CrimsonText-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Crimson Text";
+  src: url("/static/fonts/CrimsonText-Italic.woff2") format("woff2");
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Crimson Text";
+  src: url("/static/fonts/CrimsonText-SemiBold.woff2") format("woff2");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Crimson Text";
+  src: url("/static/fonts/CrimsonText-SemiBoldItalic.woff2") format("woff2");
+  font-weight: 600;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Crimson Text";
+  src: url("/static/fonts/CrimsonText-Bold.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Crimson Text";
+  src: url("/static/fonts/CrimsonText-BoldItalic.woff2") format("woff2");
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   IM FELL ENGLISH — Editorial symbols, decorative marks
+   Weight: 400 | Styles: normal, italic
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@font-face {
+  font-family: "IM Fell English";
+  src: url("/static/fonts/IMFellEnglish-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "IM Fell English";
+  src: url("/static/fonts/IMFellEnglish-Italic.woff2") format("woff2");
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   IM FELL ENGLISH SC — Mastheads, page titles (small caps)
+   Weight: 400 | Style: normal only
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@font-face {
+  font-family: "IM Fell English SC";
+  src: url("/static/fonts/IMFellEnglishSC-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   LIBRE BASKERVILLE — Headlines, section headings
+   Weight: 400-700 (variable) | Styles: normal, italic
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@font-face {
+  font-family: "Libre Baskerville";
+  src: url("/static/fonts/LibreBaskerville-VariableFont_wght.woff2") format("woff2");
+  font-weight: 400 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Libre Baskerville";
+  src: url("/static/fonts/LibreBaskerville-Italic-VariableFont_wght.woff2") format("woff2");
+  font-weight: 400 700;
+  font-style: italic;
+  font-display: swap;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   SPECIAL ELITE — Typewriter accent text
+   Weight: 400 | Style: normal only
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@font-face {
+  font-family: "Special Elite";
+  src: url("/static/fonts/SpecialElite-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}

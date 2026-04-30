@@ -6,6 +6,16 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- Frontend: vanilla ES modules + plain HTML, no build step. Left
+  panel handles source upload + run params + trigger word + the
+  Generate-all button; main pane is the 26-tile gallery (promoted
+  stylized base + 25 leaves) with per-tile prompt editing and a
+  Regenerate button. Tiles update from a `ProgressPoller` that polls
+  `GET /api/runs/{id}` every 2 s and dispatches `forge:manifest`
+  CustomEvents to the grid + status panel.
+- Imports the shared `pipe-works-base.css` design tokens + Crimson
+  Text / Courier Prime font set used across the PipeWorks app
+  ecosystem; `forge.css` only contains layout-specific rules.
 - 25-slot pipeline orchestrator (`api/services/pipeline_orchestrator.py`):
   stylized base first, then each leaf branches off it in display order;
   every i2i call gets a deterministic seed of
