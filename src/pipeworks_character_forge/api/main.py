@@ -37,6 +37,11 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Construct the manager + orchestrator + job queue on startup."""
+    # Runtime directories are created at startup, not at module import,
+    # so unit tests can monkey-patch config.runs_dir to a tmp location
+    # before any filesystem side-effect lands.
+    config.runs_dir.mkdir(parents=True, exist_ok=True)
+
     manager = Flux2KleinManager(config)
     catalog = slot_catalog.load_catalog()
     run_store = RunStore(config.runs_dir)
@@ -75,10 +80,14 @@ def create_app() -> FastAPI:
 
     # Generated images live under <runs_dir>/<run_id>/NN_<slot>.png. The
     # frontend constructs URLs of the form /runs/<run_id>/<filename>.
-    config.runs_dir.mkdir(parents=True, exist_ok=True)
+    # check_dir=False skips the at-mount existence check — the lifespan
+    # hook creates the directory on startup. Without this, importing
+    # this module in a sandbox where the configured runs_dir is not
+    # creatable (e.g. CI) raises before any test fixture can redirect
+    # the path.
     app.mount(
         "/runs",
-        StaticFiles(directory=str(config.runs_dir)),
+        StaticFiles(directory=str(config.runs_dir), check_dir=False),
         name="runs",
     )
 
