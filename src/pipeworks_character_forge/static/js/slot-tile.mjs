@@ -249,10 +249,17 @@ export function createSlotTile(
 
     if (slotState?.image && _runId) {
       const url = imageUrlFor(_runId, slotState.image);
-      // Cache-bust on regen so the browser fetches the fresh PNG.
-      const cacheBust = slotState.regen_count
-        ? `?v=${slotState.regen_count}`
-        : "";
+      // Cache-bust on `seed_used` rather than `regen_count`. The
+      // worker bumps `regen_count` up front (manifest flushes status
+      // = "running" + new count immediately) but only writes the new
+      // PNG ~52s later. Polling in between would fetch the OLD bytes
+      // under the new ?v= key and cache them, leaving the gallery
+      // stuck on the previous image. `seed_used` only changes after
+      // `output.save()`, so a non-stale signal is guaranteed.
+      const cacheBust =
+        slotState.seed_used !== undefined && slotState.seed_used !== null
+          ? `?v=${slotState.seed_used}`
+          : "";
       $image.src = url + cacheBust;
       $image.hidden = false;
       $skeleton.hidden = true;
