@@ -1,0 +1,126 @@
+{
+  "name": "default",
+  "label": "Default",
+  "description": "The original anchor prompts repackaged as a one-variant-per-slot pack. Always present after bootstrap; required by the dropdowns first option.",
+  "variants": {
+    "stylized_base": [
+      {
+        "id": "default",
+        "label": "Stylized base",
+        "prompt": "Create an image of this exact character in this style."
+      }
+    ],
+    "turnaround": [
+      {
+        "id": "default",
+        "label": "Turnaround",
+        "prompt": "Create a full body turnaround sheet of this exact character: four full-body poses on a pure white background — front view, left profile, back view, right profile — evenly spaced in a clean horizontal row, consistent lighting and style, no background noise, no shadows, same proportions and detailing across all views."
+      }
+    ],
+    "t_pose": [
+      {
+        "id": "default",
+        "label": "T-pose",
+        "prompt": "Full body T-pose of this exact character on a pure white background, arms straight out horizontally, legs together, neutral expression, even soft studio light, no shadows, no background detail, consistent style."
+      }
+    ],
+    "side_3q": [
+      {
+        "id": "default",
+        "label": "Side three-quarter",
+        "prompt": "Three-quarter side view of this exact character, full body, standing relaxed, on a pure white background, even soft studio light, consistent style, no shadows."
+      }
+    ],
+    "back_3q": [
+      {
+        "id": "default",
+        "label": "Back three-quarter",
+        "prompt": "Three-quarter back view of this exact character, full body, standing relaxed, on a pure white background, even soft studio light, consistent style, no shadows."
+      }
+    ],
+    "extreme_closeup": [
+      {
+        "id": "default",
+        "label": "Extreme close-up",
+        "prompt": "Extreme close-up of this exact character's face, eyes and upper nose filling the frame, sharp detail, soft natural light, neutral expression, plain neutral background, consistent style."
+      }
+    ],
+    "closeup": [
+      {
+        "id": "default",
+        "label": "Close-up",
+        "prompt": "Close-up portrait of this exact character, head and shoulders, soft natural light, neutral expression, plain neutral background, consistent style."
+      }
+    ],
+    "mid": [
+      {
+        "id": "default",
+        "label": "Mid",
+        "prompt": "Mid-shot of this exact character from the waist up, standing relaxed, soft natural light, neutral expression, plain neutral background, consistent style."
+      }
+    ],
+    "neutral": [
+      {
+        "id": "default",
+        "label": "Neutral",
+        "prompt": "Close-up portrait of this exact character with a calm neutral expression, mouth closed, eyes forward, soft even light, plain neutral background, consistent style."
+      }
+    ],
+    "smiling": [
+      {
+        "id": "default",
+        "label": "Smiling",
+        "prompt": "Close-up portrait of this exact character with a warm relaxed smile, lips closed or barely parted, eyes lit, soft even light, plain neutral background, consistent style."
+      }
+    ],
+    "laughing": [
+      {
+        "id": "default",
+        "label": "Laughing",
+        "prompt": "Close-up portrait of this exact character laughing genuinely, mouth open, eyes crinkled, soft even light, plain neutral background, consistent style."
+      }
+    ],
+    "angry": [
+      {
+        "id": "default",
+        "label": "Angry",
+        "prompt": "Close-up portrait of this exact character looking angry, brow furrowed, jaw set, hard side light from the left, plain neutral background, consistent style."
+      }
+    ],
+    "surprised": [
+      {
+        "id": "default",
+        "label": "Surprised",
+        "prompt": "Close-up portrait of this exact character looking surprised, eyes wide, mouth slightly open, bright even light, plain neutral background, consistent style."
+      }
+    ],
+    "walking": [
+      {
+        "id": "default",
+        "label": "Walking",
+        "prompt": "Full body shot of this exact character walking forward in mid-stride, natural gait, soft daylight, plain neutral background, consistent style, no shadows on the floor."
+      }
+    ],
+    "running": [
+      {
+        "id": "default",
+        "label": "Running",
+        "prompt": "Full body shot of this exact character running, mid-stride, arms in motion, slight forward lean, soft daylight, plain neutral background, consistent style."
+      }
+    ],
+    "sitting": [
+      {
+        "id": "default",
+        "label": "Sitting",
+        "prompt": "Full body shot of this exact character sitting on a simple wooden stool, relaxed posture, hands resting, soft daylight, plain neutral background, consistent style."
+      }
+    ],
+    "leaning": [
+      {
+        "id": "default",
+        "label": "Leaning",
+        "prompt": "Full body shot of this exact character leaning against an unseen wall, weight on one leg, arms relaxed, soft daylight, plain neutral background, consistent style."
+      }
+    ]
+  }
+}

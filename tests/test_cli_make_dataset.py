@@ -13,6 +13,7 @@ from pipeworks_character_forge.api.services.pipeline_orchestrator import (
     PipelineOrchestrator,
 )
 from pipeworks_character_forge.api.services.run_store import (
+    ResolvedAnchorVariant,
     ResolvedScene,
     RunParams,
     RunStore,
@@ -32,6 +33,21 @@ def _stub_scene_selections() -> list[ResolvedScene]:
         )
         for i in range(9)
     ]
+
+
+def _stub_anchor_variants(catalog) -> dict[str, ResolvedAnchorVariant]:
+    intermediate = catalog.intermediate
+    return {
+        intermediate.id: ResolvedAnchorVariant(
+            pack="default", variant_id="default", prompt=intermediate.default_prompt
+        ),
+        **{
+            slot.id: ResolvedAnchorVariant(
+                pack="default", variant_id="default", prompt=slot.default_prompt
+            )
+            for slot in catalog.slots
+        },
+    }
 
 
 def _png_bytes() -> bytes:
@@ -67,6 +83,7 @@ def _seed_complete_run(runs_dir: Path, *, trigger_word: str | None = "trgr") -> 
         params=RunParams(seed=1, steps=2, guidance=1.0),
         catalog=catalog,
         scene_selections=_stub_scene_selections(),
+        anchor_variants=_stub_anchor_variants(catalog),
     )
     orchestrator.run_full(run_id)
     return run_id
@@ -123,6 +140,7 @@ class TestMakeDatasetGuards:
             params=RunParams(),
             catalog=catalog,
             scene_selections=_stub_scene_selections(),
+            anchor_variants=_stub_anchor_variants(catalog),
         )
         # Manifest status stays at "pending" without orchestrator.run_full().
 

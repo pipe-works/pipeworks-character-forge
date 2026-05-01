@@ -356,7 +356,8 @@ body {
   resize: vertical;
 }
 
-.forge-tile__scene-picker {
+.forge-tile__scene-picker,
+.forge-tile__variant-picker {
   width: 100%;
   background: var(--col-surface-2);
   border: 1px solid var(--col-border);
@@ -367,7 +368,8 @@ body {
   font-size: var(--text-xs);
 }
 
-.forge-tile__scene-picker:focus {
+.forge-tile__scene-picker:focus,
+.forge-tile__variant-picker:focus {
   outline: none;
   border-color: var(--col-accent);
 }

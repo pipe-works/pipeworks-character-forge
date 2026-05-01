@@ -24,13 +24,17 @@ function _orderBadge(order) {
   return String(order).padStart(2, "0");
 }
 
-export function createSlotTile(slotDef, { promoted = false, scenePicker = null } = {}) {
+export function createSlotTile(
+  slotDef,
+  { promoted = false, scenePicker = null, anchorVariantPicker = null } = {},
+) {
   const root = document.createElement("article");
   root.className = "forge-tile";
   root.dataset.slotId = slotDef.id;
   root.dataset.group = slotDef.group;
   if (promoted) root.classList.add("forge-tile--promoted");
   if (scenePicker) root.classList.add("forge-tile--scene");
+  if (anchorVariantPicker) root.classList.add("forge-tile--variant");
 
   // Stylized base is excluded from the dataset by definition (it's an
   // intermediate, not training material), so its include checkbox is
@@ -38,13 +42,23 @@ export function createSlotTile(slotDef, { promoted = false, scenePicker = null }
   const isIntermediate = slotDef.group === "intermediate";
 
   // Scene tiles get a <select> above the textarea so the operator can
-  // swap which scene fills the slot. Anchor tiles render the same
-  // shell minus the picker.
-  const pickerHtml = scenePicker
-    ? `<select class="forge-tile__scene-picker" title="Pick a scene for this slot">
+  // swap which scene fills the slot. Anchor tiles get a parallel
+  // <select> sourced from anchor-variant packs covering this anchor;
+  // both render the same shell, never both at once.
+  let pickerHtml = "";
+  if (scenePicker) {
+    pickerHtml = `<select class="forge-tile__scene-picker" title="Pick a scene for this slot">
          ${_renderSceneOptions(scenePicker.packs, scenePicker.initial)}
-       </select>`
-    : "";
+       </select>`;
+  } else if (anchorVariantPicker) {
+    pickerHtml = `<select class="forge-tile__variant-picker" title="Pick a phrasing variant for this anchor">
+         ${_renderAnchorVariantOptions(
+           anchorVariantPicker.packs,
+           slotDef.id,
+           anchorVariantPicker.initial,
+         )}
+       </select>`;
+  }
 
   root.innerHTML = `
     <header class="forge-tile__head">
@@ -93,6 +107,7 @@ export function createSlotTile(slotDef, { promoted = false, scenePicker = null }
   const $seed = root.querySelector(".forge-tile__seed");
   const $error = root.querySelector(".forge-tile__error");
   const $scenePicker = root.querySelector(".forge-tile__scene-picker");
+  const $variantPicker = root.querySelector(".forge-tile__variant-picker");
 
   let _runId = null;
   let _debounceTimer = null;
@@ -103,6 +118,11 @@ export function createSlotTile(slotDef, { promoted = false, scenePicker = null }
   // away from the previous scene's default).
   let _scenePick = scenePicker ? { ...scenePicker.initial } : null;
   let _sceneDefaultPrompt = scenePicker ? slotDef.default_prompt : null;
+  // Mirror state for anchor-variant tiles. Same option-c rule: the
+  // textarea only updates when it still matches the prompt the picker
+  // filled in last.
+  let _variantPick = anchorVariantPicker ? { ...anchorVariantPicker.initial } : null;
+  let _variantDefaultPrompt = anchorVariantPicker ? slotDef.default_prompt : null;
 
   function _emit(name, detail) {
     root.dispatchEvent(
@@ -147,6 +167,31 @@ export function createSlotTile(slotDef, { promoted = false, scenePicker = null }
     });
   });
 
+  if ($variantPicker) {
+    $variantPicker.addEventListener("change", () => {
+      const value = $variantPicker.value; // "pack__variant_id"
+      const [packName, variantId] = value.split("__");
+      const variant = _findAnchorVariant(
+        anchorVariantPicker.packs,
+        packName,
+        slotDef.id,
+        variantId,
+      );
+      if (!variant) return;
+      _variantPick = { pack: packName, variant_id: variantId };
+      // Same option-c rule as scenes — operator hand-edits win.
+      if ($prompt.value === _variantDefaultPrompt) {
+        $prompt.value = variant.prompt;
+      }
+      _variantDefaultPrompt = variant.prompt;
+      _emit("forge:tile-variant-changed", {
+        slotId: slotDef.id,
+        pack: packName,
+        variantId,
+      });
+    });
+  }
+
   if ($scenePicker) {
     $scenePicker.addEventListener("change", () => {
       const value = $scenePicker.value; // "pack__scene_id"
@@ -184,6 +229,18 @@ export function createSlotTile(slotDef, { promoted = false, scenePicker = null }
       if ($scenePicker.value !== value) $scenePicker.value = value;
       _scenePick = { pack: slotState.scene_pack, scene_id: slotState.scene_id };
       if (slotState.scene_label) $label.textContent = slotState.scene_label;
+    }
+
+    // Hydrate anchor-variant snapshot from the manifest. Same shape as
+    // scene hydration. The label stays whatever the catalog/slot says
+    // — variants describe the *phrasing*, not the shot.
+    if ($variantPicker && slotState?.variant_pack && slotState?.variant_id) {
+      const value = `${slotState.variant_pack}__${slotState.variant_id}`;
+      if ($variantPicker.value !== value) $variantPicker.value = value;
+      _variantPick = {
+        pack: slotState.variant_pack,
+        variant_id: slotState.variant_id,
+      };
     }
 
     const status = slotState?.status ?? "pending";
@@ -255,6 +312,10 @@ export function createSlotTile(slotDef, { promoted = false, scenePicker = null }
     return _scenePick ? { ...(_scenePick) } : null;
   }
 
+  function getVariantPick() {
+    return _variantPick ? { ...(_variantPick) } : null;
+  }
+
   function getRunId() {
     return _runId;
   }
@@ -277,6 +338,7 @@ export function createSlotTile(slotDef, { promoted = false, scenePicker = null }
     getPrompt,
     setPrompt,
     getScenePick,
+    getVariantPick,
     isSelected,
     setSelected,
     slotDef,
@@ -303,6 +365,38 @@ function _renderSceneOptions(packs, initial) {
       return `<optgroup label="${_escape(pack.label)}">${options}</optgroup>`;
     })
     .join("");
+}
+
+function _renderAnchorVariantOptions(packs, slotId, initial) {
+  // <optgroup> per pack covering this slot. Sparse packs that don't
+  // cover ``slotId`` are skipped — operator only sees relevant
+  // alternatives. The selected value is "<pack>__<variant_id>".
+  return packs
+    .filter((pack) => Array.isArray(pack.variants?.[slotId]) && pack.variants[slotId].length > 0)
+    .map((pack) => {
+      const options = pack.variants[slotId]
+        .map((variant) => {
+          const value = `${pack.name}__${variant.id}`;
+          const selected =
+            initial && pack.name === initial.pack && variant.id === initial.variant_id
+              ? " selected"
+              : "";
+          return `<option value="${_escape(value)}"${selected}>${_escape(variant.label)}</option>`;
+        })
+        .join("");
+      return `<optgroup label="${_escape(pack.label)}">${options}</optgroup>`;
+    })
+    .join("");
+}
+
+function _findAnchorVariant(packs, packName, slotId, variantId) {
+  for (const pack of packs) {
+    if (pack.name !== packName) continue;
+    const slotVariants = pack.variants?.[slotId];
+    if (!Array.isArray(slotVariants)) return null;
+    return slotVariants.find((v) => v.id === variantId) ?? null;
+  }
+  return null;
 }
 
 function _findScene(packs, packName, sceneId) {

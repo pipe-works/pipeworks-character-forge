@@ -9,7 +9,12 @@
 //      updates into the grid + status panel until status reaches a
 //      terminal state.
 
-import { fetchRunManifest, fetchScenePacks, fetchSlotCatalog } from "./run-client.mjs";
+import {
+  fetchAnchorVariants,
+  fetchRunManifest,
+  fetchScenePacks,
+  fetchSlotCatalog,
+} from "./run-client.mjs";
 import { ProgressPoller } from "./progress-bus.mjs";
 import { createSlotGrid } from "./slot-grid.mjs";
 import { createSourcePanel } from "./source-panel.mjs";
@@ -39,10 +44,12 @@ async function main() {
 
   let catalog;
   let scenePackResult;
+  let anchorVariantResult;
   try {
-    [catalog, scenePackResult] = await Promise.all([
+    [catalog, scenePackResult, anchorVariantResult] = await Promise.all([
       fetchSlotCatalog(),
       fetchScenePacks(),
+      fetchAnchorVariants(),
     ]);
   } catch (error) {
     document.body.insertAdjacentHTML(
@@ -56,11 +63,15 @@ async function main() {
     // JSON file in their packs dir without having to read server logs.
     console.warn("Scene-pack warnings:", scenePackResult.warnings);
   }
+  if (anchorVariantResult?.warnings?.length) {
+    console.warn("Anchor-variant warnings:", anchorVariantResult.warnings);
+  }
 
   const slotGrid = createSlotGrid(
     document.getElementById("slot-grid"),
     catalog,
     scenePackResult,
+    anchorVariantResult,
   );
 
   let activePoller = null;

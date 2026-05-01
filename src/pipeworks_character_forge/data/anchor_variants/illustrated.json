@@ -1,0 +1,126 @@
+{
+  "name": "illustrated",
+  "label": "Illustrated",
+  "description": "Illustration phrasing across all 17 anchor slots. Use when the LoRA target is a drawn or painted look — line weight, paint passes, stylised lighting. Pairs well with a style prefix like 'Watercolor and ink illustration.'",
+  "variants": {
+    "stylized_base": [
+      {
+        "id": "character_keyart",
+        "label": "Character keyart",
+        "prompt": "An illustrated keyart of this exact character at a three-quarter framing, clean confident linework, flat-then-modeled colour blocks, simple illustrated lighting from front-left, neutral textured backdrop suggesting paper or canvas."
+      }
+    ],
+    "turnaround": [
+      {
+        "id": "model_sheet_inked",
+        "label": "Inked model sheet",
+        "prompt": "Illustrated four-pose model sheet of this exact character on a pure white background — front view, left profile, back view, right profile — clean linework with consistent line weight, evenly spaced, flat illustrated lighting, no rendered shadows."
+      }
+    ],
+    "t_pose": [
+      {
+        "id": "t_pose_inked",
+        "label": "Inked T-pose",
+        "prompt": "Illustrated full-body T-pose of this exact character on a pure white background, arms straight out, legs together, neutral expression, clean linework, simple illustrated shading, no rendered shadows."
+      }
+    ],
+    "side_3q": [
+      {
+        "id": "side_3q_inked",
+        "label": "Inked three-quarter side",
+        "prompt": "Illustrated three-quarter side view of this exact character, full body, standing relaxed, on a pure white background, clean linework, simple illustrated shading, no shadows."
+      }
+    ],
+    "back_3q": [
+      {
+        "id": "back_3q_inked",
+        "label": "Inked three-quarter back",
+        "prompt": "Illustrated three-quarter back view of this exact character, full body, standing relaxed, on a pure white background, clean linework, simple illustrated shading, no shadows."
+      }
+    ],
+    "extreme_closeup": [
+      {
+        "id": "eye_detail_painted",
+        "label": "Painted eye detail",
+        "prompt": "Illustrated extreme close-up of this exact character's face, eyes and upper nose filling the frame, painted in a confident illustrated style, expressive iris detail, soft simple lighting, neutral painterly background."
+      }
+    ],
+    "closeup": [
+      {
+        "id": "headshot_inked",
+        "label": "Inked head-and-shoulders",
+        "prompt": "Illustrated head-and-shoulders portrait of this exact character, clean linework, simple painted shading, soft single light source from camera-left, neutral painterly backdrop."
+      }
+    ],
+    "mid": [
+      {
+        "id": "mid_inked",
+        "label": "Inked mid-shot",
+        "prompt": "Illustrated mid-shot of this exact character from the waist up, standing relaxed, clean linework, simple painted shading, neutral painterly background."
+      }
+    ],
+    "neutral": [
+      {
+        "id": "neutral_inked",
+        "label": "Inked neutral portrait",
+        "prompt": "Illustrated close-up portrait of this exact character with a calm neutral expression, mouth closed, eyes forward, clean linework, soft simple lighting, neutral painterly backdrop."
+      }
+    ],
+    "smiling": [
+      {
+        "id": "smiling_inked",
+        "label": "Inked smiling portrait",
+        "prompt": "Illustrated close-up portrait of this exact character with a warm relaxed smile, lips closed or barely parted, clean linework, simple painted shading, neutral painterly backdrop."
+      }
+    ],
+    "laughing": [
+      {
+        "id": "laughing_inked",
+        "label": "Inked laughing portrait",
+        "prompt": "Illustrated close-up portrait of this exact character laughing genuinely, mouth open, eyes crinkled, expressive linework with slight motion in the hair, simple painted shading, neutral painterly backdrop."
+      }
+    ],
+    "angry": [
+      {
+        "id": "angry_inked",
+        "label": "Inked angry portrait",
+        "prompt": "Illustrated close-up portrait of this exact character looking angry, brow furrowed, jaw set, decisive linework with heavier accents on the brow and jaw, hard simple side light, neutral painterly backdrop."
+      }
+    ],
+    "surprised": [
+      {
+        "id": "surprised_inked",
+        "label": "Inked surprised portrait",
+        "prompt": "Illustrated close-up portrait of this exact character looking surprised, eyes wide, mouth slightly open, lively linework, bright simple lighting, neutral painterly backdrop."
+      }
+    ],
+    "walking": [
+      {
+        "id": "walking_inked",
+        "label": "Inked walking pose",
+        "prompt": "Illustrated full body of this exact character walking forward in mid-stride, natural gait, clean linework, simple painted shading, neutral painterly background, no rendered shadows on the floor."
+      }
+    ],
+    "running": [
+      {
+        "id": "running_inked",
+        "label": "Inked running pose",
+        "prompt": "Illustrated full body of this exact character running, mid-stride, arms in motion, slight forward lean, expressive linework with slight motion lines in the hair and clothing, neutral painterly background."
+      }
+    ],
+    "sitting": [
+      {
+        "id": "sitting_inked",
+        "label": "Inked sitting pose",
+        "prompt": "Illustrated full body of this exact character sitting on a simple wooden stool, relaxed posture, hands resting, clean linework, simple painted shading, neutral painterly background."
+      }
+    ],
+    "leaning": [
+      {
+        "id": "leaning_inked",
+        "label": "Inked leaning pose",
+        "prompt": "Illustrated full body of this exact character leaning against an unseen wall, weight on one leg, arms relaxed, clean linework, simple painted shading from camera-left, neutral painterly background."
+      }
+    ]
+  }
+}

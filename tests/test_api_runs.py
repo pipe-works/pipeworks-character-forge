@@ -212,6 +212,65 @@ class TestListRuns:
         assert run_b in ids
 
 
+class TestAnchorVariantSelections:
+    def test_default_fallback_records_default_pack_on_every_anchor(self, client):
+        source_id = _upload_source(client)
+        run_id = client.post("/api/runs", json={"source_id": source_id}).json()["run_id"]
+
+        manifest = client.run_store.load(run_id)
+        # Every anchor (intermediate + 16 leaves) must have variant_pack
+        # set — the no-pick fallback fills them from default.json.
+        for anchor_id in ["stylized_base", "turnaround", "smiling", "leaning"]:
+            slot = manifest.slots[anchor_id]
+            assert slot.variant_pack == "default"
+            assert slot.variant_id == "default"
+
+    def test_explicit_anchor_pick_drives_prompt_and_snapshot(self, client):
+        source_id = _upload_source(client)
+        # Pick the photoreal pack's variant for "turnaround" only;
+        # everything else falls back to default.
+        run_id = client.post(
+            "/api/runs",
+            json={
+                "source_id": source_id,
+                "anchor_variants": {
+                    "turnaround": {"pack": "photoreal", "variant_id": "studio_sheet"}
+                },
+            },
+        ).json()["run_id"]
+
+        manifest = client.run_store.load(run_id)
+        assert manifest.slots["turnaround"].variant_pack == "photoreal"
+        assert manifest.slots["turnaround"].variant_id == "studio_sheet"
+        assert "Photograph" in manifest.slots["turnaround"].prompt
+        # Other anchors stayed on the default pack.
+        assert manifest.slots["t_pose"].variant_pack == "default"
+
+    def test_unknown_anchor_pack_returns_400(self, client):
+        source_id = _upload_source(client)
+        response = client.post(
+            "/api/runs",
+            json={
+                "source_id": source_id,
+                "anchor_variants": {"turnaround": {"pack": "does_not_exist", "variant_id": "x"}},
+            },
+        )
+        assert response.status_code == 400
+
+    def test_unknown_anchor_slot_id_returns_400(self, client):
+        source_id = _upload_source(client)
+        response = client.post(
+            "/api/runs",
+            json={
+                "source_id": source_id,
+                "anchor_variants": {
+                    "not_a_real_anchor": {"pack": "default", "variant_id": "default"}
+                },
+            },
+        )
+        assert response.status_code == 400
+
+
 class TestSceneSelections:
     def test_default_fallback_fills_scenes_from_default_pack(self, client):
         source_id = _upload_source(client)

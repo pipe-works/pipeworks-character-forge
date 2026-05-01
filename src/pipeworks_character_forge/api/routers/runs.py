@@ -15,12 +15,13 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
 from pipeworks_character_forge.api.dependencies import get_job_queue, get_orchestrator
-from pipeworks_character_forge.api.services import scene_pack, slot_catalog
+from pipeworks_character_forge.api.services import anchor_variant, scene_pack, slot_catalog
 from pipeworks_character_forge.api.services.job_queue import JobQueue
 from pipeworks_character_forge.api.services.pipeline_orchestrator import (
     PipelineOrchestrator,
 )
 from pipeworks_character_forge.api.services.run_store import (
+    ResolvedAnchorVariant,
     ResolvedScene,
     RunParams,
     scene_slot_id,
@@ -29,9 +30,23 @@ from pipeworks_character_forge.api.services.scene_pack import (
     NUM_SCENE_SLOTS,
     SCENE_SLOT_INDICES,
 )
+from pipeworks_character_forge.api.services.slot_catalog import SlotCatalog
 from pipeworks_character_forge.core.config import config
 
 router = APIRouter()
+
+
+class AnchorVariantSelection(BaseModel):
+    """One element of ``CreateRunRequest.anchor_variants``.
+
+    Maps an anchor slot id (e.g. ``turnaround``) to the (pack,
+    variant_id) the operator picked from the dropdown. Anchors not
+    mentioned here fall back to the default pack's first variant for
+    that slot at run-create time.
+    """
+
+    pack: str
+    variant_id: str
 
 
 class SceneSelection(BaseModel):
@@ -67,6 +82,12 @@ class CreateRunRequest(BaseModel):
     # or omitted, the server fills from the ``default`` pack's first
     # 9 scenes — the "operator just clicked Generate" path.
     scene_selections: list[SceneSelection] | None = None
+    # Anchor-variant picks keyed by anchor slot id (``turnaround``,
+    # ``t_pose``, ..., ``stylized_base``). Anchors not in this dict
+    # fall back to the default pack's first variant for that slot.
+    # When the whole field is omitted/None, every anchor uses the
+    # default pack — preserving the no-pick UX.
+    anchor_variants: dict[str, AnchorVariantSelection] | None = None
 
 
 class CreateRunResponse(BaseModel):
@@ -127,6 +148,53 @@ def _resolve_scene_selections(
     return resolved
 
 
+def _resolve_anchor_variants(
+    selections: dict[str, AnchorVariantSelection] | None,
+    packs: list[anchor_variant.AnchorVariantPack],
+    catalog: SlotCatalog,
+) -> dict[str, ResolvedAnchorVariant]:
+    """Build the per-anchor variant map for run-create.
+
+    Every anchor (intermediate + 16 leaves) gets a resolved variant.
+    Explicit picks come from ``selections``; unspecified anchors fall
+    back to the default pack's first variant for that slot. Unknown
+    pack/variant or a missing default pack surfaces as ``ValueError``,
+    which the caller turns into a 400.
+    """
+    selections = selections or {}
+    anchor_ids = [catalog.intermediate.id, *(s.id for s in catalog.slots)]
+    unknown = set(selections) - set(anchor_ids)
+    if unknown:
+        raise ValueError(f"anchor_variants references unknown anchor slot ids: {sorted(unknown)}")
+
+    resolved: dict[str, ResolvedAnchorVariant] = {}
+    for anchor_id in anchor_ids:
+        pick = selections.get(anchor_id)
+        if pick is not None:
+            try:
+                variant = anchor_variant.resolve_variant(
+                    packs, pick.pack, anchor_id, pick.variant_id
+                )
+            except KeyError as exc:
+                raise ValueError(str(exc)) from exc
+            resolved[anchor_id] = ResolvedAnchorVariant(
+                pack=pick.pack,
+                variant_id=variant.id,
+                prompt=variant.prompt,
+            )
+        else:
+            try:
+                variant = anchor_variant.default_variant_for(packs, anchor_id)
+            except ValueError as exc:
+                raise ValueError(str(exc)) from exc
+            resolved[anchor_id] = ResolvedAnchorVariant(
+                pack=anchor_variant.DEFAULT_PACK_NAME,
+                variant_id=variant.id,
+                prompt=variant.prompt,
+            )
+    return resolved
+
+
 def _make_run_id() -> str:
     now = datetime.now(UTC)
     minute = now.strftime("%Y-%m-%dT%H-%M")
@@ -176,6 +244,14 @@ def create_run(
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
+    anchor_pack_result = anchor_variant.load(config.packs_dir)
+    try:
+        resolved_anchor_variants = _resolve_anchor_variants(
+            body.anchor_variants, anchor_pack_result.packs, catalog
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
     run_id = _make_run_id()
     orchestrator.run_store.create(
         run_id=run_id,
@@ -186,6 +262,7 @@ def create_run(
         params=RunParams(seed=body.seed, steps=body.steps, guidance=body.guidance),
         catalog=catalog,
         scene_selections=resolved_scenes,
+        anchor_variants=resolved_anchor_variants,
         slot_overrides=body.slot_overrides,
         only_slots=only_slots,
     )

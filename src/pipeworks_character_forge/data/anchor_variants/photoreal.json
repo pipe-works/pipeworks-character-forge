@@ -1,0 +1,126 @@
+{
+  "name": "photoreal",
+  "label": "Photoreal",
+  "description": "Photographic phrasing across all 17 anchor slots. Use when the LoRA target is a real-camera look — soft natural light, narrow depth of field, plausible lens choices. Pairs well with a style prefix like 'Shot on Kodak Portra 400.'",
+  "variants": {
+    "stylized_base": [
+      {
+        "id": "studio_portrait",
+        "label": "Studio portrait",
+        "prompt": "A photographic studio portrait of this exact character at a three-quarter framing, eye-level lens, soft key light from the front-left and gentle fill from the front-right, neutral seamless backdrop, sharp focus on the eyes, slight shallow depth of field."
+      }
+    ],
+    "turnaround": [
+      {
+        "id": "studio_sheet",
+        "label": "Studio model sheet",
+        "prompt": "Photograph of this exact character in a four-pose model-sheet layout on a pure white seamless background — front view, left profile, back view, right profile — same camera distance and even soft studio strobe across all four, no shadows, identical proportions, consistent skin tones, sharp focus throughout."
+      }
+    ],
+    "t_pose": [
+      {
+        "id": "studio_t_pose",
+        "label": "Studio T-pose",
+        "prompt": "Full body photograph of this exact character in a T-pose on a pure white seamless backdrop, arms held horizontally, legs together, neutral expression, even softbox lighting, no shadows, sharp focus, full-body in frame with a small margin."
+      }
+    ],
+    "side_3q": [
+      {
+        "id": "studio_3q_side",
+        "label": "Studio three-quarter side",
+        "prompt": "Full body photograph of this exact character at a three-quarter side angle, standing relaxed on a pure white seamless backdrop, even soft studio strobe, no shadows on the floor, sharp focus, calm posture."
+      }
+    ],
+    "back_3q": [
+      {
+        "id": "studio_3q_back",
+        "label": "Studio three-quarter back",
+        "prompt": "Full body photograph of this exact character at a three-quarter back angle, standing relaxed on a pure white seamless backdrop, soft studio light from above-left, sharp focus, no shadows, head turned slightly so the profile is just visible."
+      }
+    ],
+    "extreme_closeup": [
+      {
+        "id": "macro_eye",
+        "label": "Macro eye-and-nose",
+        "prompt": "Macro photograph of this exact character's face, eyes and the bridge of the nose filling the frame, sharp focus on the iris detail, soft natural window light, plain neutral background entirely out of focus, neutral expression."
+      }
+    ],
+    "closeup": [
+      {
+        "id": "85mm_headshot",
+        "label": "85mm headshot",
+        "prompt": "Close-up photograph of this exact character, head and shoulders, soft natural window light, neutral expression, plain neutral background slightly out of focus, the look of an 85mm portrait lens at a wide aperture."
+      }
+    ],
+    "mid": [
+      {
+        "id": "mid_shot",
+        "label": "Mid-shot photograph",
+        "prompt": "Mid-shot photograph of this exact character from the waist up, standing relaxed, soft natural window light from camera-left, neutral expression, plain neutral background slightly out of focus."
+      }
+    ],
+    "neutral": [
+      {
+        "id": "neutral_portrait",
+        "label": "Neutral portrait",
+        "prompt": "Close-up photographic portrait of this exact character with a calm neutral expression, mouth closed, eyes forward, soft even daylight, plain neutral backdrop, sharp focus on the eyes."
+      }
+    ],
+    "smiling": [
+      {
+        "id": "smiling_portrait",
+        "label": "Smiling portrait",
+        "prompt": "Close-up photographic portrait of this exact character with a warm relaxed smile, lips closed or barely parted, eyes lit, soft even daylight, plain neutral backdrop, sharp focus."
+      }
+    ],
+    "laughing": [
+      {
+        "id": "laughing_candid",
+        "label": "Laughing candid",
+        "prompt": "Candid close-up photograph of this exact character laughing genuinely, mouth open, eyes crinkled, soft even daylight, plain neutral backdrop, slight motion in the hair, sharp focus on the eyes."
+      }
+    ],
+    "angry": [
+      {
+        "id": "angry_hard_light",
+        "label": "Angry under hard light",
+        "prompt": "Close-up photographic portrait of this exact character looking angry, brow furrowed, jaw set, hard side light from camera-left producing a defined shadow on the right cheek, plain neutral backdrop, sharp focus."
+      }
+    ],
+    "surprised": [
+      {
+        "id": "surprised_bright",
+        "label": "Surprised, bright",
+        "prompt": "Close-up photographic portrait of this exact character looking surprised, eyes wide, mouth slightly open, bright even daylight, plain neutral backdrop, sharp focus."
+      }
+    ],
+    "walking": [
+      {
+        "id": "walking_daylight",
+        "label": "Walking, daylight",
+        "prompt": "Full body photograph of this exact character walking forward in mid-stride, natural gait, soft daylight, plain neutral background slightly out of focus, no harsh shadows on the floor."
+      }
+    ],
+    "running": [
+      {
+        "id": "running_action",
+        "label": "Running, action",
+        "prompt": "Full body action photograph of this exact character running mid-stride, arms in motion, slight forward lean, soft daylight, plain neutral background, slight motion blur in the hair and clothing, the body sharp."
+      }
+    ],
+    "sitting": [
+      {
+        "id": "sitting_stool",
+        "label": "Sitting on a stool",
+        "prompt": "Full body photograph of this exact character sitting on a simple wooden stool, relaxed posture, hands resting, soft daylight, plain neutral background, sharp focus."
+      }
+    ],
+    "leaning": [
+      {
+        "id": "leaning_wall",
+        "label": "Leaning against a wall",
+        "prompt": "Full body photograph of this exact character leaning against an unseen wall, weight on one leg, arms relaxed, soft daylight from camera-left, plain neutral background, sharp focus."
+      }
+    ]
+  }
+}

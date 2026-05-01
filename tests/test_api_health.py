@@ -49,6 +49,24 @@ class TestApiScenePacks:
         assert body["scene_slot_count"] == 9
 
 
+class TestApiAnchorVariants:
+    def test_returns_bundled_packs(self, tmp_path, monkeypatch) -> None:
+        from pipeworks_character_forge.core.config import config
+
+        monkeypatch.setattr(config, "packs_dir", config.data_dir)
+        client = TestClient(create_app())
+        response = client.get("/api/anchor-variants")
+        assert response.status_code == 200
+        body = response.json()
+        names = {p["name"] for p in body["packs"]}
+        assert "default" in names
+        # Default pack must cover every anchor — required by the
+        # no-selection fallback in the run-create router.
+        default_pack = next(p for p in body["packs"] if p["name"] == "default")
+        assert "turnaround" in default_pack["variants"]
+        assert "stylized_base" in default_pack["variants"]
+
+
 class TestIndex:
     def test_index_serves_html(self) -> None:
         client = TestClient(create_app())

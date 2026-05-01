@@ -53,6 +53,7 @@ include-package-data = true
 pipeworks_character_forge = [
     "data/*.json",
     "data/scene_packs/*.json",
+    "data/anchor_variants/*.json",
     "static/**/*",
     "templates/**/*",
 ]

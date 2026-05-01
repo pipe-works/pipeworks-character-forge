@@ -11,26 +11,51 @@ import { createSlotTile } from "./slot-tile.mjs";
 
 const SCENE_SLOT_INDICES = [17, 18, 19, 20, 21, 22, 23, 24, 25];
 
-export function createSlotGrid(rootEl, catalog, scenePackResult) {
+export function createSlotGrid(rootEl, catalog, scenePackResult, anchorVariantResult) {
   // Order is enforced by /api/slots: intermediate first, then anchors
   // sorted by `order`. Scene leaves come from /api/scene-packs and are
   // appended after the anchor tiles in positions 17-25.
   const tilesById = new Map();
   const scenePacks = scenePackResult?.packs ?? [];
+  const anchorVariantPacks = anchorVariantResult?.packs ?? [];
   // The "default" pack is the no-selection fallback. Pre-pick its
   // first 9 scenes so a fresh page reads sensibly even if the operator
   // never touches the dropdowns. Loader guarantees default has >= 9
   // scenes (run-create errors loudly otherwise).
   const defaultPack = scenePacks.find((p) => p.name === "default");
+  const defaultAnchorPack = anchorVariantPacks.find((p) => p.name === "default");
+
+  function _initialAnchorPick(slotId) {
+    // Default-pack first variant for this slot, mirroring the server-
+    // side fallback. Returns null if for some reason the default pack
+    // doesn't cover this anchor (loader should prevent that, but be
+    // defensive — the picker just renders empty rather than crashing).
+    const variants = defaultAnchorPack?.variants?.[slotId];
+    if (!Array.isArray(variants) || variants.length === 0) return null;
+    return { pack: defaultAnchorPack.name, variant_id: variants[0].id };
+  }
+
+  function _anchorTileOpts(slotDef, extra = {}) {
+    const initial = _initialAnchorPick(slotDef.id);
+    return {
+      ...extra,
+      anchorVariantPicker: anchorVariantPacks.length
+        ? { packs: anchorVariantPacks, initial }
+        : null,
+    };
+  }
 
   // Promoted base tile.
-  const baseTile = createSlotTile(catalog.intermediate, { promoted: true });
+  const baseTile = createSlotTile(
+    catalog.intermediate,
+    _anchorTileOpts(catalog.intermediate, { promoted: true }),
+  );
   tilesById.set(catalog.intermediate.id, baseTile);
   rootEl.appendChild(baseTile.root);
 
   // Anchor leaves.
   for (const slotDef of catalog.slots) {
-    const tile = createSlotTile(slotDef);
+    const tile = createSlotTile(slotDef, _anchorTileOpts(slotDef));
     tilesById.set(slotDef.id, tile);
     rootEl.appendChild(tile.root);
   }
@@ -186,6 +211,20 @@ export function createSlotGrid(rootEl, catalog, scenePackResult) {
     return picks;
   }
 
+  function collectAnchorVariants() {
+    // Returns a map of anchor_slot_id -> {pack, variant_id} for every
+    // anchor tile that has a pick. Posted as ``anchor_variants`` on
+    // POST /api/runs. Anchors not in the map fall back to the default
+    // pack's first variant for that slot (server side).
+    const picks = {};
+    for (const [slotId, tile] of tilesById.entries()) {
+      if (slotId.startsWith("scene_")) continue;
+      const pick = tile.getVariantPick?.();
+      if (pick) picks[slotId] = { pack: pick.pack, variant_id: pick.variant_id };
+    }
+    return picks;
+  }
+
   return {
     setRunId,
     applyManifest,
@@ -193,6 +232,7 @@ export function createSlotGrid(rootEl, catalog, scenePackResult) {
     collectPromptOverrides,
     clearPromptOverrides,
     collectSceneSelections,
+    collectAnchorVariants,
     getSelectedSlotIds,
     clearSelection,
     resetVisuals,
