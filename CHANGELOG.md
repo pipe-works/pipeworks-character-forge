@@ -2,6 +2,44 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.0](https://github.com/pipe-works/pipeworks-character-forge/compare/pipeworks-character-forge-v0.1.0...pipeworks-character-forge-v0.2.0) (2026-05-01)
+
+
+### Features
+
+* 25-slot pipeline orchestrator + run/regenerate API ([#9](https://github.com/pipe-works/pipeworks-character-forge/issues/9)) ([4a0f6e1](https://github.com/pipe-works/pipeworks-character-forge/commit/4a0f6e14505900a871473b7dc8586da40226bba4))
+* add idempotent deploy/install.sh + uninstall.sh for Luminal ([#7](https://github.com/pipe-works/pipeworks-character-forge/issues/7)) ([14c30bc](https://github.com/pipe-works/pipeworks-character-forge/commit/14c30bc879f4cc4d466cd0318877b96f680872c8))
+* batch regenerate via tile checkboxes + stylized-base cascade ([#19](https://github.com/pipe-works/pipeworks-character-forge/issues/19)) ([98029e4](https://github.com/pipe-works/pipeworks-character-forge/commit/98029e4626a20315a88e5631d7268a41db5b81c6))
+* bootstrap PipeWorks Character Forge skeleton ([#1](https://github.com/pipe-works/pipeworks-character-forge/issues/1)) ([1718caf](https://github.com/pipe-works/pipeworks-character-forge/commit/1718caff2ce601ae76a99d3fd7e3a801d3aa062d))
+* cancel a running chain (best-effort) + reset gallery on cancel ([#17](https://github.com/pipe-works/pipeworks-character-forge/issues/17)) ([82ccb7d](https://github.com/pipe-works/pipeworks-character-forge/commit/82ccb7dce818e0d4187f6b9151c849ae1aa16451))
+* FLUX.2-klein manager + source upload + debug i2i endpoint ([#4](https://github.com/pipe-works/pipeworks-character-forge/issues/4)) ([2dad7a3](https://github.com/pipe-works/pipeworks-character-forge/commit/2dad7a3c9ded430991ddfc4185fe4fc60e9efeaa))
+* frontend (HTML + ES modules + CSS) ([#10](https://github.com/pipe-works/pipeworks-character-forge/issues/10)) ([ea57b30](https://github.com/pipe-works/pipeworks-character-forge/commit/ea57b3039b84c1af378709aff741292a4ab03052))
+* per-slot exclude-from-dataset toggle ([#18](https://github.com/pipe-works/pipeworks-character-forge/issues/18)) ([21a1107](https://github.com/pipe-works/pipeworks-character-forge/commit/21a11073af93468de39964a453db77cd80b07356))
+* pw-forge make-dataset CLI + UMask=0002 on systemd unit ([#11](https://github.com/pipe-works/pipeworks-character-forge/issues/11)) ([a9061f3](https://github.com/pipe-works/pipeworks-character-forge/commit/a9061f3c9a88f8ae976a77fa227f3898c889cd09))
+* selective initial generation — generate just selected slots ([#21](https://github.com/pipe-works/pipeworks-character-forge/issues/21)) ([3e02ebc](https://github.com/pipe-works/pipeworks-character-forge/commit/3e02ebc17508df662e695a69f90ef427361e8ba9))
+* style-prefix run param + Create-dataset HTTP endpoint and button ([#16](https://github.com/pipe-works/pipeworks-character-forge/issues/16)) ([44e7b6a](https://github.com/pipe-works/pipeworks-character-forge/commit/44e7b6a8ddebf389833046eed932f3c1cdca0a06))
+* **theme:** app-shell layout + light/dark toggle, design tokens ([#12](https://github.com/pipe-works/pipeworks-character-forge/issues/12)) ([5c450cf](https://github.com/pipe-works/pipeworks-character-forge/commit/5c450cfd854dcff9b973abf0de38b986e54cc248))
+
+
+### Fixes
+
+* **css:** [hidden] !important so tiles do not render as broken-image alt text ([#13](https://github.com/pipe-works/pipeworks-character-forge/issues/13)) ([342b7a1](https://github.com/pipe-works/pipeworks-character-forge/commit/342b7a19cc4a5a646ad5e5569ff2b61c84d76d1a))
+* **css:** stack seed/steps/guidance fields vertically in the source panel ([#15](https://github.com/pipe-works/pipeworks-character-forge/issues/15)) ([48e109d](https://github.com/pipe-works/pipeworks-character-forge/commit/48e109d851cba7ae98b6b93d5d20e070b9a890ec))
+* default enable_model_cpu_offload=true for 32 GiB cards ([#6](https://github.com/pipe-works/pipeworks-character-forge/issues/6)) ([cd374fa](https://github.com/pipe-works/pipeworks-character-forge/commit/cd374fab54c1b3233960479262586293a5806ef9))
+* **install:** correct health-probe URL + pre-flight venv exec by pipeworks ([#8](https://github.com/pipe-works/pipeworks-character-forge/issues/8)) ([e0c7f44](https://github.com/pipe-works/pipeworks-character-forge/commit/e0c7f443366d685af82df9bce2eed32e87f2f20a))
+* **ui:** drop tile shimmer + remove redundant click that double-opens file dialog ([#14](https://github.com/pipe-works/pipeworks-character-forge/issues/14)) ([4582260](https://github.com/pipe-works/pipeworks-character-forge/commit/45822607e0a79877e1eaece5848b093b6d6eecf0))
+* **ui:** tile select checkboxes only operable when a run exists ([#20](https://github.com/pipe-works/pipeworks-character-forge/issues/20)) ([f4df9c8](https://github.com/pipe-works/pipeworks-character-forge/commit/f4df9c83bd171a569f9424e953328288722c5a6f))
+
+
+### Documentation
+
+* **readme:** rewrite to comply with PipeWorks README policy ([#22](https://github.com/pipe-works/pipeworks-character-forge/issues/22)) ([d6018d3](https://github.com/pipe-works/pipeworks-character-forge/commit/d6018d3c545e0f6e2659ae6b070a0ad9dbaa1352))
+
+
+### Internal Changes
+
+* move runtime state outside the repo + document HF_TOKEN ([#5](https://github.com/pipe-works/pipeworks-character-forge/issues/5)) ([3bdcbdd](https://github.com/pipe-works/pipeworks-character-forge/commit/3bdcbdde6f3201e14900504cc905804a6e110e0d))
+
 ## [Unreleased]
 
 ### Added
