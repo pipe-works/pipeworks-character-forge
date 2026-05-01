@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.0](https://github.com/pipe-works/pipeworks-character-forge/compare/pipeworks-character-forge-v0.2.0...pipeworks-character-forge-v0.3.0) (2026-05-01)
+
+
+### Features
+
+* **anchors:** JSON anchor-variant packs drive tile 0-16 phrasing ([#28](https://github.com/pipe-works/pipeworks-character-forge/issues/28)) ([06aa0f5](https://github.com/pipe-works/pipeworks-character-forge/commit/06aa0f5a69749603b6550c6d5f397ca55fbc31bc))
+* **prompt:** add style suffix sibling of style prefix ([#26](https://github.com/pipe-works/pipeworks-character-forge/issues/26)) ([330ed96](https://github.com/pipe-works/pipeworks-character-forge/commit/330ed96a644167bac562629e108da19d41341046))
+* **scenes:** JSON scene packs drive tiles 17-25 (mix-and-match) ([#27](https://github.com/pipe-works/pipeworks-character-forge/issues/27)) ([75a78c1](https://github.com/pipe-works/pipeworks-character-forge/commit/75a78c197a7e935867ab45e5fd09b47f487d0ee0))
+
+
+### Fixes
+
+* **manager:** rebuild pipeline after OOM/device-mismatch errors ([#25](https://github.com/pipe-works/pipeworks-character-forge/issues/25)) ([fcf77db](https://github.com/pipe-works/pipeworks-character-forge/commit/fcf77db2974359579f7e3c4e29fcf7d91b5d2711))
+* **ui:** cache-bust regenerated images on seed_used, not regen_count ([#29](https://github.com/pipe-works/pipeworks-character-forge/issues/29)) ([6f166a3](https://github.com/pipe-works/pipeworks-character-forge/commit/6f166a3cc175174cd88b9247ebfa25fa77d7efa9))
+* **ui:** regenerate updates the gallery + survives page refresh ([#23](https://github.com/pipe-works/pipeworks-character-forge/issues/23)) ([0278b8b](https://github.com/pipe-works/pipeworks-character-forge/commit/0278b8b0a1eab2b8a0e0e736e6c59deb0e5197ed))
+
 ## [0.2.0](https://github.com/pipe-works/pipeworks-character-forge/compare/pipeworks-character-forge-v0.1.0...pipeworks-character-forge-v0.2.0) (2026-05-01)
 
 
