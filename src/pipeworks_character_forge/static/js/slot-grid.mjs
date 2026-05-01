@@ -49,6 +49,12 @@ export function createSlotGrid(rootEl, catalog) {
     try {
       await regenerateSlot(runId, slotId, prompt);
       promptOverrides.set(slotId, prompt);
+      // The page-level poller stops at terminal states; tell the app
+      // shell to make sure it's running so the new image lands in the
+      // tile without the operator having to refresh.
+      window.dispatchEvent(
+        new CustomEvent("forge:regen-queued", { detail: { runId } }),
+      );
     } catch (error) {
       console.error("Regenerate failed:", error);
       window.dispatchEvent(
@@ -78,6 +84,11 @@ export function createSlotGrid(rootEl, catalog) {
       }
       tile.update(slotState, { runId: manifest.run_id });
     }
+  }
+
+  function getPrompt(slotId) {
+    const tile = tilesById.get(slotId);
+    return tile ? tile.getPrompt() : null;
   }
 
   function collectPromptOverrides() {
@@ -121,10 +132,16 @@ export function createSlotGrid(rootEl, catalog) {
     }
   }
 
+  function clearPromptOverrides() {
+    promptOverrides.clear();
+  }
+
   return {
     setRunId,
     applyManifest,
+    getPrompt,
     collectPromptOverrides,
+    clearPromptOverrides,
     getSelectedSlotIds,
     clearSelection,
     resetVisuals,
