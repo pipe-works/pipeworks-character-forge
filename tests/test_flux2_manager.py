@@ -116,9 +116,7 @@ class TestI2IRecoveryOnCorruption:
 
         assert manager.pipeline is None
 
-    def test_device_mismatch_unloads_pipeline(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_device_mismatch_unloads_pipeline(self, monkeypatch: pytest.MonkeyPatch) -> None:
         torch = pytest.importorskip("torch")
         manager = Flux2KleinManager(config)
         manager.pipeline = _RaisingPipeline(
@@ -134,9 +132,7 @@ class TestI2IRecoveryOnCorruption:
 
         assert manager.pipeline is None
 
-    def test_unrelated_error_keeps_pipeline(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_unrelated_error_keeps_pipeline(self, monkeypatch: pytest.MonkeyPatch) -> None:
         torch = pytest.importorskip("torch")
         manager = Flux2KleinManager(config)
         fake = _RaisingPipeline(ValueError("bad prompt"))
