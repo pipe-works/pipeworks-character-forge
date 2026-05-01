@@ -278,14 +278,15 @@ class PipelineOrchestrator:
     def _compose_prompt(manifest: RunManifest, slot_prompt: str) -> str:
         """Build the final prompt sent to the i2i pipeline.
 
-        Style prefix (if set) is prepended verbatim with a single
-        space separator, so the operator can write it as one or more
-        sentences without worrying about punctuation collisions.
+        Style prefix and suffix (if set) wrap the slot prompt with a
+        single space separator on each side. Operator can write either
+        as one or more sentences without worrying about punctuation
+        collisions.
         """
         prefix = (manifest.style_prefix or "").strip()
-        if not prefix:
-            return slot_prompt
-        return f"{prefix} {slot_prompt}"
+        suffix = (manifest.style_suffix or "").strip()
+        parts = [p for p in (prefix, slot_prompt, suffix) if p]
+        return " ".join(parts)
 
     # Re-export for tests / introspection.
     @staticmethod

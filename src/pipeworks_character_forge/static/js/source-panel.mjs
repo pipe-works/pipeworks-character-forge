@@ -19,6 +19,7 @@ export function createSourcePanel({ slotGrid, onRunStart, onRunCancelled }) {
 
   const $trigger = document.getElementById("trigger-word");
   const $stylePrefix = document.getElementById("style-prefix");
+  const $styleSuffix = document.getElementById("style-suffix");
   const $seed = document.getElementById("seed");
   const $steps = document.getElementById("steps");
   const $guidance = document.getElementById("guidance");
@@ -127,6 +128,7 @@ export function createSourcePanel({ slotGrid, onRunStart, onRunCancelled }) {
         sourceId: _sourceId,
         triggerWord: $trigger.value.trim(),
         stylePrefix: $stylePrefix.value.trim(),
+        styleSuffix: $styleSuffix.value.trim(),
         seed: Number($seed.value) || 1234,
         steps: Number($steps.value) || 28,
         guidance: Number($guidance.value) || 4.5,
@@ -256,6 +258,7 @@ export function createSourcePanel({ slotGrid, onRunStart, onRunCancelled }) {
     $preview.hidden = true;
     $trigger.value = "";
     $stylePrefix.value = "";
+    $styleSuffix.value = "";
     $generate.disabled = true;
     $createDataset.disabled = true;
     $cancel.hidden = true;
@@ -282,6 +285,7 @@ export function createSourcePanel({ slotGrid, onRunStart, onRunCancelled }) {
     $preview.hidden = false;
     if (manifest.trigger_word) $trigger.value = manifest.trigger_word;
     if (manifest.style_prefix) $stylePrefix.value = manifest.style_prefix;
+    if (manifest.style_suffix) $styleSuffix.value = manifest.style_suffix;
     if (manifest.params) {
       if (manifest.params.seed !== undefined) $seed.value = manifest.params.seed;
       if (manifest.params.steps !== undefined) $steps.value = manifest.params.steps;
