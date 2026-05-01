@@ -19,6 +19,30 @@ from pipeworks_character_forge.core.config import PipeworksForgeConfig
 
 logger = logging.getLogger(__name__)
 
+# Substrings that identify exceptions where the only safe recovery is to
+# rebuild the pipeline. A mid-forward OOM with `enable_model_cpu_offload`
+# leaves accelerate's hooks half-committed: some submodules made it to
+# CUDA before the alloc failed, the post-hook that would move them back
+# to CPU never ran. Subsequent forwards hit the device-mismatch error
+# rather than failing cleanly. Either signal means: drop the pipeline,
+# let the next i2i lazy-load a fresh one.
+_CORRUPTION_MESSAGE_PATTERNS: tuple[str, ...] = (
+    "CUDA out of memory",
+    "Expected all tensors to be on the same device",
+)
+
+
+def _is_pipeline_corruption(exc: BaseException) -> bool:
+    """True iff *exc* indicates the pipeline must be rebuilt to recover."""
+    # `torch.cuda.OutOfMemoryError` is the canonical OOM type, but the
+    # manager keeps torch lazy-imported, so match by class name to avoid
+    # an eager import here. The class lives at module scope and torch
+    # raises it from C++, so subclass matching is not a concern.
+    if type(exc).__name__ == "OutOfMemoryError":
+        return True
+    msg = str(exc)
+    return any(p in msg for p in _CORRUPTION_MESSAGE_PATTERNS)
+
 
 class I2IPipeline(Protocol):
     """Subset of the diffusers pipeline interface that the manager calls."""
@@ -112,13 +136,24 @@ class Flux2KleinManager:
         # case — the pipeline reseeds the device-side noise from it.
         gen_device = "cpu" if self.config.enable_model_cpu_offload else self.config.device
         generator = torch.Generator(device=gen_device).manual_seed(seed)
-        result = self.pipeline(
-            prompt=prompt,
-            image=reference_image,
-            num_inference_steps=steps,
-            guidance_scale=guidance,
-            generator=generator,
-        )
+        try:
+            result = self.pipeline(
+                prompt=prompt,
+                image=reference_image,
+                num_inference_steps=steps,
+                guidance_scale=guidance,
+                generator=generator,
+            )
+        except Exception as exc:
+            if _is_pipeline_corruption(exc):
+                logger.warning(
+                    "Pipeline state corrupted by %s (%s); unloading so the "
+                    "next i2i call rebuilds a clean pipeline.",
+                    type(exc).__name__,
+                    exc,
+                )
+                self.unload()
+            raise
         return result.images[0]  # type: ignore[no-any-return]
 
     def unload(self) -> None:
