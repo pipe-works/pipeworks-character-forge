@@ -42,6 +42,20 @@ class ResolvedScene(BaseModel):
     default_prompt: str
 
 
+class ResolvedAnchorVariant(BaseModel):
+    """One variant picked for an anchor slot, fully resolved.
+
+    Same role as :class:`ResolvedScene` but for the 17 anchors. The
+    router resolves user-supplied ``(pack, variant_id)`` against the
+    loaded anchor-variant packs (or falls back to the default pack
+    for anchors the operator didn't explicitly pick).
+    """
+
+    pack: str
+    variant_id: str
+    prompt: str
+
+
 SlotStatus = Literal["pending", "running", "done", "failed"]
 RunStatus = Literal["pending", "running", "done", "failed", "cancelled"]
 
@@ -76,6 +90,13 @@ class SlotState(BaseModel):
     scene_pack: str | None = None
     scene_id: str | None = None
     scene_label: str | None = None
+    # Anchor-variant metadata. Records which (pack, variant_id) the
+    # tile's prompt came from at run-create time, even if the operator
+    # later hand-edits the prompt. ``None`` on scene slots and on
+    # anchors that were filled from the catalog default before
+    # variants existed.
+    variant_pack: str | None = None
+    variant_id: str | None = None
 
 
 class RunParams(BaseModel):
@@ -163,6 +184,7 @@ class RunStore:
         params: RunParams,
         catalog: SlotCatalog,
         scene_selections: list[ResolvedScene],
+        anchor_variants: dict[str, ResolvedAnchorVariant],
         slot_overrides: dict[str, str] | None = None,
         style_prefix: str | None = None,
         style_suffix: str | None = None,
@@ -195,13 +217,26 @@ class RunStore:
             shutil.copy(source_path, target_source)
 
         slots: dict[str, SlotState] = {}
-        slots[catalog.intermediate.id] = SlotState(
-            prompt=overrides.get(catalog.intermediate.id) or catalog.intermediate.default_prompt,
+
+        def _anchor_slot_state(slot_id: str, fallback_prompt: str) -> SlotState:
+            variant = anchor_variants.get(slot_id)
+            if variant is None:
+                # Caller didn't supply a pick — anchor falls back to the
+                # catalog default with no traceability snapshot. Mostly a
+                # belt-and-braces path; the router fills every anchor
+                # from the default pack when the client omits one.
+                return SlotState(prompt=overrides.get(slot_id) or fallback_prompt)
+            return SlotState(
+                prompt=overrides.get(slot_id) or variant.prompt,
+                variant_pack=variant.pack,
+                variant_id=variant.variant_id,
+            )
+
+        slots[catalog.intermediate.id] = _anchor_slot_state(
+            catalog.intermediate.id, catalog.intermediate.default_prompt
         )
         for slot in sorted(catalog.slots, key=lambda s: s.order):
-            slots[slot.id] = SlotState(
-                prompt=overrides.get(slot.id) or slot.default_prompt,
-            )
+            slots[slot.id] = _anchor_slot_state(slot.id, slot.default_prompt)
         for index, scene in zip(SCENE_SLOT_INDICES, scene_selections, strict=True):
             slot_id = scene_slot_id(index)
             slots[slot_id] = SlotState(

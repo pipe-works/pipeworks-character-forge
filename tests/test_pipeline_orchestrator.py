@@ -13,12 +13,34 @@ from pipeworks_character_forge.api.services.pipeline_orchestrator import (
     PipelineOrchestrator,
 )
 from pipeworks_character_forge.api.services.run_store import (
+    ResolvedAnchorVariant,
     ResolvedScene,
     RunParams,
     RunStore,
 )
 from pipeworks_character_forge.core.config import config
 from tests._fakes import FakeFlux2KleinManager
+
+
+def _stub_anchor_variants(catalog) -> dict[str, ResolvedAnchorVariant]:
+    """One stub variant per anchor mirroring the no-pick fallback shape.
+
+    Uses the catalog's own default prompts so prompt-content assertions
+    elsewhere ("expect 'smile' in the prompt for the smiling slot")
+    keep working without each test having to know about variant packs.
+    """
+    intermediate = catalog.intermediate
+    return {
+        intermediate.id: ResolvedAnchorVariant(
+            pack="default", variant_id="default", prompt=intermediate.default_prompt
+        ),
+        **{
+            slot.id: ResolvedAnchorVariant(
+                pack="default", variant_id="default", prompt=slot.default_prompt
+            )
+            for slot in catalog.slots
+        },
+    }
 
 
 def _stub_scene_selections() -> list[ResolvedScene]:
@@ -94,6 +116,7 @@ def _seed_run(
         params=RunParams(seed=1000, steps=4, guidance=3.0),
         catalog=catalog,
         scene_selections=_stub_scene_selections(),
+        anchor_variants=_stub_anchor_variants(catalog),
         slot_overrides=slot_overrides,
         only_slots=only_slots,
     )

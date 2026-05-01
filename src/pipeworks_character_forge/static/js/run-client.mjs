@@ -41,6 +41,14 @@ export async function fetchScenePacks() {
   return response.json();
 }
 
+export async function fetchAnchorVariants() {
+  const response = await fetch("/api/anchor-variants");
+  if (!response.ok) {
+    throw new Error(`Failed to fetch anchor variants: ${await _readError(response)}`);
+  }
+  return response.json();
+}
+
 export async function createRun({
   sourceId,
   triggerWord,
@@ -52,6 +60,7 @@ export async function createRun({
   slotOverrides,
   onlySlots,
   sceneSelections,
+  anchorVariants,
 }) {
   const response = await fetch("/api/runs", {
     method: "POST",
@@ -67,6 +76,7 @@ export async function createRun({
       slot_overrides: slotOverrides || {},
       only_slots: onlySlots || null,
       scene_selections: sceneSelections || null,
+      anchor_variants: anchorVariants || null,
     }),
   });
   if (!response.ok) {

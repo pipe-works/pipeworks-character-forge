@@ -22,7 +22,7 @@ from pipeworks_character_forge.api.routers import debug as debug_router
 from pipeworks_character_forge.api.routers import runs as runs_router
 from pipeworks_character_forge.api.routers import slots as slots_router
 from pipeworks_character_forge.api.routers import source as source_router
-from pipeworks_character_forge.api.services import scene_pack, slot_catalog
+from pipeworks_character_forge.api.services import anchor_variant, scene_pack, slot_catalog
 from pipeworks_character_forge.api.services.job_queue import JobQueue
 from pipeworks_character_forge.api.services.pipeline_orchestrator import (
     PipelineOrchestrator,
@@ -41,9 +41,11 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     # so unit tests can monkey-patch config.runs_dir to a tmp location
     # before any filesystem side-effect lands.
     config.runs_dir.mkdir(parents=True, exist_ok=True)
-    # Seed bundled scene packs into the runtime dir on first deploy
-    # (idempotent — operator edits stay sticky across upgrades).
+    # Seed bundled scene packs and anchor-variant packs into the runtime
+    # dir on first deploy. Both are idempotent — operator edits stay
+    # sticky across upgrades.
     scene_pack.bootstrap(config.packs_dir, config.data_dir / "scene_packs")
+    anchor_variant.bootstrap(config.packs_dir, config.data_dir / "anchor_variants")
 
     manager = Flux2KleinManager(config)
     catalog = slot_catalog.load_catalog()
@@ -127,6 +129,20 @@ def create_app() -> FastAPI:
             "packs": [p.model_dump() for p in result.packs],
             "warnings": result.warnings,
             "scene_slot_count": scene_pack.NUM_SCENE_SLOTS,
+        }
+
+    @app.get("/api/anchor-variants")
+    def anchor_variants() -> dict[str, object]:
+        """Return all parseable anchor-variant packs from the runtime dir.
+
+        Same dynamic-discovery semantics as ``/api/scene-packs``. Sparse
+        packs are fine — tile dropdowns show whichever packs cover that
+        anchor and fall back to the default pack for the rest.
+        """
+        result = anchor_variant.load(config.packs_dir)
+        return {
+            "packs": [p.model_dump() for p in result.packs],
+            "warnings": result.warnings,
         }
 
     @app.get("/", response_class=HTMLResponse)
