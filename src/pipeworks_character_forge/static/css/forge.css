@@ -356,6 +356,22 @@ body {
   resize: vertical;
 }
 
+.forge-tile__scene-picker {
+  width: 100%;
+  background: var(--col-surface-2);
+  border: 1px solid var(--col-border);
+  border-radius: var(--radius-sm);
+  padding: var(--sp-1) var(--sp-2);
+  color: var(--col-text);
+  font-family: var(--font-record);
+  font-size: var(--text-xs);
+}
+
+.forge-tile__scene-picker:focus {
+  outline: none;
+  border-color: var(--col-accent);
+}
+
 .forge-tile__prompt:focus {
   outline: none;
   border-color: var(--col-accent);

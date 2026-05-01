@@ -75,13 +75,13 @@ class PipelineOrchestrator:
                 self._finalize_cancelled(manifest.run_id)
                 return
 
-            for slot in sorted(self.catalog.slots, key=lambda s: s.order):
-                if leaf_filter is not None and slot.id not in leaf_filter:
+            for slot_id in self._ordered_leaf_ids(manifest):
+                if leaf_filter is not None and slot_id not in leaf_filter:
                     continue
                 if self._was_cancelled(manifest.run_id):
                     self._finalize_cancelled(manifest.run_id)
                     return
-                self._generate_slot(manifest, slot.id)
+                self._generate_slot(manifest, slot_id)
 
             manifest.status = "done"
         except Exception as exc:
@@ -154,11 +154,11 @@ class PipelineOrchestrator:
             if self._was_cancelled(manifest.run_id):
                 self._finalize_cancelled(manifest.run_id)
                 return
-            for slot in sorted(self.catalog.slots, key=lambda s: s.order):
+            for slot_id in self._ordered_leaf_ids(manifest):
                 if self._was_cancelled(manifest.run_id):
                     self._finalize_cancelled(manifest.run_id)
                     return
-                self._generate_slot(manifest, slot.id)
+                self._generate_slot(manifest, slot_id)
             manifest.status = "done"
         except Exception as exc:
             manifest.status = "failed"
@@ -262,8 +262,17 @@ class PipelineOrchestrator:
         return rd / base_image
 
     def _order_for(self, slot_id: str) -> int:
-        slot_def = self.catalog.by_id(slot_id)
-        return slot_def.order
+        # Scene slots aren't in the catalog — their ids encode the
+        # display order directly (``scene_17`` -> 17, ..., ``scene_25``
+        # -> 25). Anchor slots and the intermediate look up the catalog.
+        if slot_id.startswith("scene_"):
+            return int(slot_id.split("_", 1)[1])
+        return self.catalog.by_id(slot_id).order
+
+    def _ordered_leaf_ids(self, manifest: RunManifest) -> list[str]:
+        """Every leaf in the manifest in generation order. Excludes the base."""
+        leaves = [s for s in manifest.slots if s != self.catalog.intermediate.id]
+        return sorted(leaves, key=self._order_for)
 
     def _render_caption(self, manifest: RunManifest, prompt: str) -> str:
         # Captions intentionally do NOT include the style prefix. The

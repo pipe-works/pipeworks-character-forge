@@ -6,9 +6,11 @@ from pipeworks_character_forge.api.services import slot_catalog
 
 
 class TestSlotCatalogLoading:
-    def test_loads_with_25_leaf_slots(self) -> None:
+    def test_loads_with_16_anchor_leaves(self) -> None:
+        # Catalog defines anchor slots only — scenes (17-25) live in
+        # operator-curated packs under the runtime packs dir.
         catalog = slot_catalog.load_catalog()
-        assert len(catalog.slots) == 25
+        assert len(catalog.slots) == 16
 
     def test_intermediate_is_stylized_base(self) -> None:
         catalog = slot_catalog.load_catalog()
@@ -26,10 +28,10 @@ class TestSlotCatalogInvariants:
         ids = [s.id for s in slots]
         assert len(ids) == len(set(ids))
 
-    def test_slot_orders_are_unique_and_contiguous_1_through_25(self) -> None:
+    def test_slot_orders_are_unique_and_contiguous_1_through_16(self) -> None:
         slots = slot_catalog.list_slots()
         orders = sorted(s.order for s in slots)
-        assert orders == list(range(1, 26))
+        assert orders == list(range(1, 17))
 
     def test_every_leaf_branches_off_stylized_base(self) -> None:
         slots = slot_catalog.list_slots()
@@ -40,12 +42,13 @@ class TestSlotCatalogInvariants:
         counts: dict[str, int] = {}
         for slot in slots:
             counts[slot.group] = counts.get(slot.group, 0) + 1
+        # The "scenes" group used to live here; it migrated to JSON
+        # scene packs in PR 2 and is no longer part of the catalog.
         assert counts == {
             "reference": 4,
             "portrait": 3,
             "expressions": 5,
             "action": 4,
-            "scenes": 9,
         }
 
     def test_default_prompts_non_empty(self) -> None:

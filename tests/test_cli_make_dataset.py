@@ -12,10 +12,26 @@ from pipeworks_character_forge.api.services import slot_catalog
 from pipeworks_character_forge.api.services.pipeline_orchestrator import (
     PipelineOrchestrator,
 )
-from pipeworks_character_forge.api.services.run_store import RunParams, RunStore
+from pipeworks_character_forge.api.services.run_store import (
+    ResolvedScene,
+    RunParams,
+    RunStore,
+)
 from pipeworks_character_forge.cli import main as cli_main
 from pipeworks_character_forge.core.config import config
 from tests._fakes import FakeFlux2KleinManager
+
+
+def _stub_scene_selections() -> list[ResolvedScene]:
+    return [
+        ResolvedScene(
+            pack="default",
+            scene_id=f"stub_scene_{i}",
+            label=f"Stub scene {i}",
+            default_prompt=f"Stub scene {i} prompt for cli tests.",
+        )
+        for i in range(9)
+    ]
 
 
 def _png_bytes() -> bytes:
@@ -50,6 +66,7 @@ def _seed_complete_run(runs_dir: Path, *, trigger_word: str | None = "trgr") -> 
         trigger_word=trigger_word,
         params=RunParams(seed=1, steps=2, guidance=1.0),
         catalog=catalog,
+        scene_selections=_stub_scene_selections(),
     )
     orchestrator.run_full(run_id)
     return run_id
@@ -105,6 +122,7 @@ class TestMakeDatasetGuards:
             trigger_word=None,
             params=RunParams(),
             catalog=catalog,
+            scene_selections=_stub_scene_selections(),
         )
         # Manifest status stays at "pending" without orchestrator.run_full().
 

@@ -82,6 +82,10 @@ def runs_dir(tmp_path, monkeypatch):
     runs_path = tmp_path / "runs"
     runs_path.mkdir()
     monkeypatch.setattr(config, "runs_dir", runs_path)
+    # Point packs_dir at the bundled package data so the no-selection
+    # fallback path (default.json with 9 scenes) resolves without us
+    # having to run the bootstrap copy step in every test.
+    monkeypatch.setattr(config, "packs_dir", config.data_dir)
     monkeypatch.setattr("pipeworks_character_forge.api.routers.source.config", config)
     monkeypatch.setattr("pipeworks_character_forge.api.routers.debug.config", config)
     monkeypatch.setattr("pipeworks_character_forge.api.routers.runs.config", config)
@@ -208,6 +212,65 @@ class TestListRuns:
         assert run_b in ids
 
 
+class TestSceneSelections:
+    def test_default_fallback_fills_scenes_from_default_pack(self, client):
+        source_id = _upload_source(client)
+        run_id = client.post("/api/runs", json={"source_id": source_id}).json()["run_id"]
+
+        manifest = client.run_store.load(run_id)
+        # All 9 scene slots present, all materialised from the default
+        # pack, with snapshot fields populated from the pack file.
+        for index in range(17, 26):
+            slot = manifest.slots[f"scene_{index}"]
+            assert slot.scene_pack == "default"
+            assert slot.scene_id, f"scene_{index} missing scene_id"
+            assert slot.scene_label, f"scene_{index} missing scene_label"
+
+    def test_explicit_picks_drive_scene_label_and_prompt(self, client):
+        source_id = _upload_source(client)
+        # Pick the same pack/scene for every slot; this is artificial
+        # but confirms the selection pipeline plumbs through end-to-end.
+        selections = [{"pack": "default", "scene_id": "neon_alley"}] * 9
+        run_id = client.post(
+            "/api/runs",
+            json={"source_id": source_id, "scene_selections": selections},
+        ).json()["run_id"]
+
+        manifest = client.run_store.load(run_id)
+        for index in range(17, 26):
+            slot = manifest.slots[f"scene_{index}"]
+            assert slot.scene_id == "neon_alley"
+            assert slot.scene_label == "Neon alley"
+            assert "neon-lit alley" in slot.prompt
+
+    def test_unknown_pack_returns_400(self, client):
+        source_id = _upload_source(client)
+        selections = [{"pack": "does_not_exist", "scene_id": "x"}] * 9
+        response = client.post(
+            "/api/runs",
+            json={"source_id": source_id, "scene_selections": selections},
+        )
+        assert response.status_code == 400
+
+    def test_unknown_scene_in_known_pack_returns_400(self, client):
+        source_id = _upload_source(client)
+        selections = [{"pack": "default", "scene_id": "no_such_scene"}] * 9
+        response = client.post(
+            "/api/runs",
+            json={"source_id": source_id, "scene_selections": selections},
+        )
+        assert response.status_code == 400
+
+    def test_wrong_count_returns_400(self, client):
+        source_id = _upload_source(client)
+        selections = [{"pack": "default", "scene_id": "neon_alley"}] * 5
+        response = client.post(
+            "/api/runs",
+            json={"source_id": source_id, "scene_selections": selections},
+        )
+        assert response.status_code == 400
+
+
 class TestSelectiveRun:
     def test_only_slots_runs_base_plus_listed_leaves(self, client):
         source_id = _upload_source(client)
@@ -215,7 +278,7 @@ class TestSelectiveRun:
             "/api/runs",
             json={
                 "source_id": source_id,
-                "only_slots": ["smiling", "spooky_castle"],
+                "only_slots": ["smiling", "scene_17"],
             },
         )
         assert response.status_code == 201
@@ -226,7 +289,7 @@ class TestSelectiveRun:
         assert manifest.status == "done"
         assert manifest.slots["stylized_base"].status == "done"
         assert manifest.slots["smiling"].status == "done"
-        assert manifest.slots["spooky_castle"].status == "done"
+        assert manifest.slots["scene_17"].status == "done"
         assert manifest.slots["turnaround"].status == "pending"
 
     def test_only_slots_strips_stylized_base_silently(self, client):
@@ -325,7 +388,7 @@ class TestPatchSlot:
         ).json()["run_id"]
 
         client.patch(
-            f"/api/runs/{run_id}/slots/spooky_castle",
+            f"/api/runs/{run_id}/slots/scene_17",
             json={"excluded": True},
         )
 
@@ -333,7 +396,7 @@ class TestPatchSlot:
         assert response.status_code == 201
         body = response.json()
         assert body["pairs"] == 24
-        assert "spooky_castle" in body["excluded"]
+        assert "scene_17" in body["excluded"]
 
 
 class TestCancelRun:

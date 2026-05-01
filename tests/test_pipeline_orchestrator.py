@@ -12,9 +12,35 @@ from pipeworks_character_forge.api.services import slot_catalog
 from pipeworks_character_forge.api.services.pipeline_orchestrator import (
     PipelineOrchestrator,
 )
-from pipeworks_character_forge.api.services.run_store import RunParams, RunStore
+from pipeworks_character_forge.api.services.run_store import (
+    ResolvedScene,
+    RunParams,
+    RunStore,
+)
 from pipeworks_character_forge.core.config import config
 from tests._fakes import FakeFlux2KleinManager
+
+
+def _stub_scene_selections() -> list[ResolvedScene]:
+    """9 distinct resolved scenes used by every orchestrator test.
+
+    Real scene packs are not loaded in unit tests — this saves us from
+    putting JSON files on disk and lets each scene stay traceable in
+    assertions (slot ``scene_17``'s prompt contains the substring
+    ``"scene 17 prompt"``, etc.).
+    """
+    return [
+        ResolvedScene(
+            pack="default",
+            scene_id=f"stub_scene_{i}",
+            label=f"Stub scene {i}",
+            default_prompt=(
+                f"Put this exact character in stub scene {i}. "
+                f"This is the scene {i + 17 - 1} prompt for tests."
+            ),
+        )
+        for i in range(9)
+    ]
 
 
 def _png_bytes(color: tuple[int, int, int] = (10, 20, 30)) -> bytes:
@@ -53,6 +79,7 @@ def _seed_run(
     style_prefix: str | None = None,
     style_suffix: str | None = None,
     only_slots: list[str] | None = None,
+    slot_overrides: dict[str, str] | None = None,
 ) -> str:
     run_id = "test-run"
     catalog = slot_catalog.load_catalog()
@@ -66,6 +93,8 @@ def _seed_run(
         style_suffix=style_suffix,
         params=RunParams(seed=1000, steps=4, guidance=3.0),
         catalog=catalog,
+        scene_selections=_stub_scene_selections(),
+        slot_overrides=slot_overrides,
         only_slots=only_slots,
     )
     return run_id
@@ -118,17 +147,21 @@ class TestRunFull:
         manifest = orchestrator.run_store.load(run_id)
         assert manifest.slots["stylized_base"].image == "00_stylized_base.png"
         assert manifest.slots["turnaround"].image == "01_turnaround.png"
-        assert manifest.slots["golden_hour_rooftop"].image == "25_golden_hour_rooftop.png"
+        # Scene leaves use positional ids ``scene_17``..``scene_25``.
+        # The chosen scene's metadata lives on the slot state, not in
+        # the filename.
+        assert manifest.slots["scene_25"].image == "25_scene_25.png"
 
     def test_per_slot_seeds_use_run_seed_plus_order(self, orchestrator):
         run_id = _seed_run(orchestrator)
         orchestrator.run_full(run_id)
 
         manifest = orchestrator.run_store.load(run_id)
-        # Run seed = 1000; offsets = slot order (stylized_base=0, leaves 1..25).
+        # Run seed = 1000; offsets = slot order (stylized_base=0,
+        # anchors 1..16, scene_NN's order = NN).
         assert manifest.slots["stylized_base"].seed_used == 1000
         assert manifest.slots["turnaround"].seed_used == 1001
-        assert manifest.slots["golden_hour_rooftop"].seed_used == 1025
+        assert manifest.slots["scene_25"].seed_used == 1025
 
     def test_failure_marks_run_failed_and_re_raises(self, orchestrator):
         run_id = _seed_run(orchestrator)
@@ -294,7 +327,7 @@ class TestRegenerateSlot:
         # Every other leaf stays pending — the operator can fill them
         # in later via per-tile regenerate or another selective run.
         assert manifest.slots["turnaround"].status == "pending"
-        assert manifest.slots["spooky_castle"].status == "pending"
+        assert manifest.slots["scene_17"].status == "pending"
 
     def test_cascade_from_base_reruns_everything_and_bumps_regen_count(
         self, orchestrator, runs_dir
@@ -321,7 +354,7 @@ class TestRegenerateSlot:
         # Operator marks one slot excluded and edits another's prompt.
         manifest = orchestrator.run_store.load(run_id)
         manifest.slots["smiling"].excluded = True
-        manifest.slots["spooky_castle"].prompt = "OVERRIDE — castle prompt."
+        manifest.slots["scene_17"].prompt = "OVERRIDE — scene 17 prompt."
         orchestrator.run_store.save(manifest)
 
         orchestrator.cascade_from_base(run_id)
@@ -329,7 +362,7 @@ class TestRegenerateSlot:
         manifest = orchestrator.run_store.load(run_id)
         # Excluded flag survives; cascade does not reset slot defaults.
         assert manifest.slots["smiling"].excluded is True
-        assert manifest.slots["spooky_castle"].prompt == "OVERRIDE — castle prompt."
+        assert manifest.slots["scene_17"].prompt == "OVERRIDE — scene 17 prompt."
 
     def test_regen_uses_stylized_base_as_reference_for_leaves(self, orchestrator):
         """Every leaf regen reads <run>/00_stylized_base.png, not the source."""

@@ -15,15 +15,37 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
 from pipeworks_character_forge.api.dependencies import get_job_queue, get_orchestrator
-from pipeworks_character_forge.api.services import slot_catalog
+from pipeworks_character_forge.api.services import scene_pack, slot_catalog
 from pipeworks_character_forge.api.services.job_queue import JobQueue
 from pipeworks_character_forge.api.services.pipeline_orchestrator import (
     PipelineOrchestrator,
 )
-from pipeworks_character_forge.api.services.run_store import RunParams
+from pipeworks_character_forge.api.services.run_store import (
+    ResolvedScene,
+    RunParams,
+    scene_slot_id,
+)
+from pipeworks_character_forge.api.services.scene_pack import (
+    NUM_SCENE_SLOTS,
+    SCENE_SLOT_INDICES,
+)
 from pipeworks_character_forge.core.config import config
 
 router = APIRouter()
+
+
+class SceneSelection(BaseModel):
+    """One element of ``CreateRunRequest.scene_selections``.
+
+    Names the (pack, scene_id) the operator picked for one of the 9
+    scene slots. The router resolves these against the loaded packs
+    at run-create time and snapshots the resulting prompt + label
+    into the manifest. Order matters — index 0 fills slot 17, index
+    1 fills slot 18, and so on.
+    """
+
+    pack: str
+    scene_id: str
 
 
 class CreateRunRequest(BaseModel):
@@ -41,6 +63,10 @@ class CreateRunRequest(BaseModel):
     # stylized base always runs (every leaf uses it as conditioning).
     # None means "run the full 25-leaf chain".
     only_slots: list[str] | None = None
+    # Scene picks for the 9 scene slots (positions 17-25). When None
+    # or omitted, the server fills from the ``default`` pack's first
+    # 9 scenes — the "operator just clicked Generate" path.
+    scene_selections: list[SceneSelection] | None = None
 
 
 class CreateRunResponse(BaseModel):
@@ -55,6 +81,50 @@ class DatasetExportResponse(BaseModel):
     pairs: int
     skipped: list[str]
     excluded: list[str]
+
+
+def _resolve_scene_selections(
+    selections: list[SceneSelection] | None,
+    packs: list[scene_pack.ScenePack],
+) -> list[ResolvedScene]:
+    """Validate user picks and resolve them to snapshotted scene defs.
+
+    ``None`` means "use the no-selection fallback" — the first 9
+    scenes from the default pack. A non-None list must have exactly
+    :data:`NUM_SCENE_SLOTS` entries and every (pack, scene_id) must
+    resolve to a known scene; otherwise a ``ValueError`` is raised
+    that the caller turns into a 400.
+    """
+    if selections is None:
+        try:
+            pairs = scene_pack.default_selections(packs)
+        except ValueError as exc:
+            raise ValueError(
+                f"scene_selections omitted and no-selection fallback failed: {exc}"
+            ) from exc
+    else:
+        if len(selections) != NUM_SCENE_SLOTS:
+            raise ValueError(
+                f"scene_selections must have exactly {NUM_SCENE_SLOTS} entries; "
+                f"got {len(selections)}"
+            )
+        pairs = [(s.pack, s.scene_id) for s in selections]
+
+    resolved: list[ResolvedScene] = []
+    for pack_name, scene_id in pairs:
+        try:
+            scene = scene_pack.resolve_scene(packs, pack_name, scene_id)
+        except KeyError as exc:
+            raise ValueError(str(exc)) from exc
+        resolved.append(
+            ResolvedScene(
+                pack=pack_name,
+                scene_id=scene.id,
+                label=scene.label,
+                default_prompt=scene.default_prompt,
+            )
+        )
+    return resolved
 
 
 def _make_run_id() -> str:
@@ -75,7 +145,8 @@ def create_run(
         raise HTTPException(status_code=404, detail=f"Unknown source_id: {body.source_id}")
 
     catalog = slot_catalog.load_catalog()
-    known_slot_ids = {catalog.intermediate.id} | {s.id for s in catalog.slots}
+    scene_slot_ids = {scene_slot_id(i) for i in SCENE_SLOT_INDICES}
+    known_slot_ids = {catalog.intermediate.id} | {s.id for s in catalog.slots} | scene_slot_ids
     unknown = set(body.slot_overrides) - known_slot_ids
     if unknown:
         raise HTTPException(
@@ -86,7 +157,7 @@ def create_run(
     only_slots = body.only_slots
     if only_slots is not None:
         # Leaf-only filter — stylized_base is implicit and always runs.
-        leaf_ids = {s.id for s in catalog.slots}
+        leaf_ids = {s.id for s in catalog.slots} | scene_slot_ids
         only_slots = [s for s in only_slots if s != catalog.intermediate.id]
         unknown_only = set(only_slots) - leaf_ids
         if unknown_only:
@@ -94,6 +165,16 @@ def create_run(
                 status_code=400,
                 detail=f"only_slots references unknown slot ids: {sorted(unknown_only)}",
             )
+
+    # Resolve scene picks against the live packs dir. Bad packs surface
+    # warnings rather than failing the request, but a missing pack or
+    # scene the user explicitly named is a hard 400 — we never want
+    # the run to silently use a different scene than what was clicked.
+    pack_result = scene_pack.load(config.packs_dir)
+    try:
+        resolved_scenes = _resolve_scene_selections(body.scene_selections, pack_result.packs)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     run_id = _make_run_id()
     orchestrator.run_store.create(
@@ -104,6 +185,7 @@ def create_run(
         style_suffix=body.style_suffix,
         params=RunParams(seed=body.seed, steps=body.steps, guidance=body.guidance),
         catalog=catalog,
+        scene_selections=resolved_scenes,
         slot_overrides=body.slot_overrides,
         only_slots=only_slots,
     )
