@@ -18,15 +18,35 @@ class TestApiHealth:
 
 
 class TestApiSlots:
-    def test_slots_returns_25_leaves_and_intermediate(self) -> None:
+    def test_slots_returns_16_anchors_and_intermediate(self) -> None:
+        # /api/slots returns the anchor catalog only — scenes (17-25)
+        # are exposed via /api/scene-packs in PR 2.
         client = TestClient(create_app())
         response = client.get("/api/slots")
         assert response.status_code == 200
         body = response.json()
         assert body["intermediate"]["id"] == "stylized_base"
-        assert len(body["slots"]) == 25
+        assert len(body["slots"]) == 16
         assert body["slots"][0]["id"] == "turnaround"
-        assert body["slots"][-1]["id"] == "golden_hour_rooftop"
+        assert body["slots"][-1]["id"] == "leaning"
+
+
+class TestApiScenePacks:
+    def test_returns_bundled_packs(self, tmp_path, monkeypatch) -> None:
+        # Point packs_dir at the bundled package data so the loader sees
+        # ``data/scene_packs/*.json`` directly without running bootstrap.
+        from pipeworks_character_forge.core.config import config
+
+        monkeypatch.setattr(config, "packs_dir", config.data_dir)
+        client = TestClient(create_app())
+        response = client.get("/api/scene-packs")
+        assert response.status_code == 200
+        body = response.json()
+        names = {p["name"] for p in body["packs"]}
+        # The default pack is required by the no-selection fallback;
+        # the others are nice-to-have alternates the operator can extend.
+        assert "default" in names
+        assert body["scene_slot_count"] == 9
 
 
 class TestIndex:

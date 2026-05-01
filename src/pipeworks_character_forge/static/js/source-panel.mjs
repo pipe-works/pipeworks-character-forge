@@ -124,6 +124,7 @@ export function createSourcePanel({ slotGrid, onRunStart, onRunCancelled }) {
       const isSelective = onlySlots.length > 0;
       _setBusy(true, isSelective ? `Queuing selective run (${onlySlots.length})…` : "Queuing run…");
       const slotOverrides = slotGrid.collectPromptOverrides();
+      const sceneSelections = slotGrid.collectSceneSelections();
       const result = await createRun({
         sourceId: _sourceId,
         triggerWord: $trigger.value.trim(),
@@ -134,6 +135,7 @@ export function createSourcePanel({ slotGrid, onRunStart, onRunCancelled }) {
         guidance: Number($guidance.value) || 4.5,
         slotOverrides,
         onlySlots: isSelective ? onlySlots : null,
+        sceneSelections: sceneSelections.length === 9 ? sceneSelections : null,
       });
       _setBusy(false, `Run ${result.run_id} queued.`);
       _runId = result.run_id;

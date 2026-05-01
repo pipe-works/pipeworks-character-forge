@@ -24,17 +24,27 @@ function _orderBadge(order) {
   return String(order).padStart(2, "0");
 }
 
-export function createSlotTile(slotDef, { promoted = false } = {}) {
+export function createSlotTile(slotDef, { promoted = false, scenePicker = null } = {}) {
   const root = document.createElement("article");
   root.className = "forge-tile";
   root.dataset.slotId = slotDef.id;
   root.dataset.group = slotDef.group;
   if (promoted) root.classList.add("forge-tile--promoted");
+  if (scenePicker) root.classList.add("forge-tile--scene");
 
   // Stylized base is excluded from the dataset by definition (it's an
   // intermediate, not training material), so its include checkbox is
   // hidden — there's nothing meaningful to toggle.
   const isIntermediate = slotDef.group === "intermediate";
+
+  // Scene tiles get a <select> above the textarea so the operator can
+  // swap which scene fills the slot. Anchor tiles render the same
+  // shell minus the picker.
+  const pickerHtml = scenePicker
+    ? `<select class="forge-tile__scene-picker" title="Pick a scene for this slot">
+         ${_renderSceneOptions(scenePicker.packs, scenePicker.initial)}
+       </select>`
+    : "";
 
   root.innerHTML = `
     <header class="forge-tile__head">
@@ -45,18 +55,19 @@ export function createSlotTile(slotDef, { promoted = false } = {}) {
         aria-label="Select this slot"
       />
       <span class="forge-tile__order">${_orderBadge(slotDef.order)}</span>
-      <h3 class="forge-tile__label">${slotDef.label}</h3>
+      <h3 class="forge-tile__label">${_escape(slotDef.label)}</h3>
       <span class="forge-tile__status" data-status="pending">${STATUS_LABELS.pending}</span>
     </header>
     <figure class="forge-tile__media">
       <div class="forge-tile__skeleton" aria-hidden="true"></div>
-      <img class="forge-tile__image" hidden alt="${slotDef.label}" />
+      <img class="forge-tile__image" hidden alt="${_escape(slotDef.label)}" />
     </figure>
     <div class="forge-tile__body">
+      ${pickerHtml}
       <textarea
         class="forge-tile__prompt"
         rows="3"
-        spellcheck="false">${slotDef.default_prompt}</textarea>
+        spellcheck="false">${_escape(slotDef.default_prompt)}</textarea>
       <div class="forge-tile__actions">
         <button type="button" class="forge-btn forge-btn--small forge-tile__regen" disabled>
           Regenerate
@@ -71,6 +82,7 @@ export function createSlotTile(slotDef, { promoted = false } = {}) {
     </div>
   `;
 
+  const $label = root.querySelector(".forge-tile__label");
   const $statusPill = root.querySelector(".forge-tile__status");
   const $skeleton = root.querySelector(".forge-tile__skeleton");
   const $image = root.querySelector(".forge-tile__image");
@@ -80,9 +92,17 @@ export function createSlotTile(slotDef, { promoted = false } = {}) {
   const $include = root.querySelector(".forge-tile__include-checkbox");
   const $seed = root.querySelector(".forge-tile__seed");
   const $error = root.querySelector(".forge-tile__error");
+  const $scenePicker = root.querySelector(".forge-tile__scene-picker");
 
   let _runId = null;
   let _debounceTimer = null;
+  // For scene tiles, _scenePick is the currently-selected (pack,
+  // scene_id) and _sceneDefaultPrompt is the prompt the picker filled
+  // into the textarea last (used to honor the option-c rule: only
+  // overwrite the textarea on a new pick if the operator hasn't edited
+  // away from the previous scene's default).
+  let _scenePick = scenePicker ? { ...scenePicker.initial } : null;
+  let _sceneDefaultPrompt = scenePicker ? slotDef.default_prompt : null;
 
   function _emit(name, detail) {
     root.dispatchEvent(
@@ -127,8 +147,44 @@ export function createSlotTile(slotDef, { promoted = false } = {}) {
     });
   });
 
+  if ($scenePicker) {
+    $scenePicker.addEventListener("change", () => {
+      const value = $scenePicker.value; // "pack__scene_id"
+      const [packName, sceneId] = value.split("__");
+      const scene = _findScene(scenePicker.packs, packName, sceneId);
+      if (!scene) return;
+      _scenePick = { pack: packName, scene_id: sceneId };
+      $label.textContent = scene.label;
+      // Option-c rule from the design: only overwrite the textarea if
+      // it still matches what the picker filled in last. Operator edits
+      // win — they're not surprised by a dropdown change wiping their
+      // tweaks.
+      if ($prompt.value === _sceneDefaultPrompt) {
+        $prompt.value = scene.default_prompt;
+      }
+      _sceneDefaultPrompt = scene.default_prompt;
+      _emit("forge:tile-scene-changed", {
+        slotId: slotDef.id,
+        pack: packName,
+        sceneId,
+        label: scene.label,
+      });
+    });
+  }
+
   function update(slotState, { runId } = {}) {
     if (runId) _runId = runId;
+
+    // Hydrate scene metadata from the manifest. The picker dropdown is
+    // updated to reflect the resolved (pack, scene_id) so a refreshed
+    // page reads truthfully even if the manifest was created on a
+    // different machine with different defaults.
+    if ($scenePicker && slotState?.scene_pack && slotState?.scene_id) {
+      const value = `${slotState.scene_pack}__${slotState.scene_id}`;
+      if ($scenePicker.value !== value) $scenePicker.value = value;
+      _scenePick = { pack: slotState.scene_pack, scene_id: slotState.scene_id };
+      if (slotState.scene_label) $label.textContent = slotState.scene_label;
+    }
 
     const status = slotState?.status ?? "pending";
     $statusPill.dataset.status = status;
@@ -195,6 +251,10 @@ export function createSlotTile(slotDef, { promoted = false } = {}) {
     $prompt.value = prompt;
   }
 
+  function getScenePick() {
+    return _scenePick ? { ...(_scenePick) } : null;
+  }
+
   function getRunId() {
     return _runId;
   }
@@ -216,8 +276,48 @@ export function createSlotTile(slotDef, { promoted = false } = {}) {
     getRunId,
     getPrompt,
     setPrompt,
+    getScenePick,
     isSelected,
     setSelected,
     slotDef,
   };
+}
+
+function _renderSceneOptions(packs, initial) {
+  // <optgroup> per pack so the operator can see what's coming from
+  // where. The selected value is "<pack>__<scene_id>" — split by the
+  // change handler. Pack/scene names are alphanumeric+underscore by
+  // schema, but we still HTML-escape labels because they're free-form.
+  return packs
+    .map((pack) => {
+      const options = pack.scenes
+        .map((scene) => {
+          const value = `${pack.name}__${scene.id}`;
+          const selected =
+            initial && pack.name === initial.pack && scene.id === initial.scene_id
+              ? " selected"
+              : "";
+          return `<option value="${_escape(value)}"${selected}>${_escape(scene.label)}</option>`;
+        })
+        .join("");
+      return `<optgroup label="${_escape(pack.label)}">${options}</optgroup>`;
+    })
+    .join("");
+}
+
+function _findScene(packs, packName, sceneId) {
+  for (const pack of packs) {
+    if (pack.name !== packName) continue;
+    return pack.scenes.find((s) => s.id === sceneId) ?? null;
+  }
+  return null;
+}
+
+function _escape(value) {
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }

@@ -1,0 +1,52 @@
+{
+  "name": "high_fantasy",
+  "label": "High fantasy",
+  "description": "Castles, taverns, ruins, dragon lairs, enchanted forests. For LoRAs intended for high-fantasy illustration or game-asset generation.",
+  "scenes": [
+    {
+      "id": "ruined_throne_room",
+      "label": "Ruined throne room",
+      "default_prompt": "Put this exact character in a ruined stone throne room and change the pose. Shafts of cold morning light through a collapsed roof, broken statues at the edges of frame, the character is standing before a fallen throne, hand resting on a hilt, contemplative."
+    },
+    {
+      "id": "tavern_interior",
+      "label": "Tavern interior",
+      "default_prompt": "Put this exact character at a long oak table in a busy tavern at night and change the pose. Warm firelight from a stone hearth, dim lanterns, the character is leaning forward over a tankard, mid-laugh, surrounded by suggested patrons in soft focus."
+    },
+    {
+      "id": "enchanted_forest",
+      "label": "Enchanted forest",
+      "default_prompt": "Put this exact character in an enchanted forest at twilight and change the pose. Pale blue glow from luminous moss and floating motes, tall pale tree trunks, the character is mid-step, head turned to a sound, hand half-raised in caution."
+    },
+    {
+      "id": "dragon_lair_treasure",
+      "label": "Dragon lair (treasure)",
+      "default_prompt": "Put this exact character in a vast dragon's lair piled with treasure and change the pose. Warm gold-light bouncing off coins, deep crimson shadow in the cave's far reaches, the character is crouched over a piece of armor, awe and caution mingled."
+    },
+    {
+      "id": "castle_battlements_dawn",
+      "label": "Castle battlements (dawn)",
+      "default_prompt": "Put this exact character on stone castle battlements at dawn and change the pose. Cool blue sky going pink at the horizon, banners catching low side-light, the character is leaning against a merlon, scanning the distance, cloak stirring in the wind."
+    },
+    {
+      "id": "wizards_study",
+      "label": "Wizard's study",
+      "default_prompt": "Put this exact character inside a wizard's cluttered study and change the pose. Warm candlelight on stacked books and curiosities, faint motes in the air, the character is bending over an open tome with a wand or quill in hand, expression focused."
+    },
+    {
+      "id": "frozen_mountain_pass",
+      "label": "Frozen mountain pass",
+      "default_prompt": "Put this exact character on a frozen mountain pass under heavy grey cloud and change the pose. Wind-driven snow crossing the frame, the character is leaning into the wind, cloak whipping, one hand shielding eyes."
+    },
+    {
+      "id": "marsh_at_dusk",
+      "label": "Marsh at dusk",
+      "default_prompt": "Put this exact character ankle-deep in a foggy marsh at dusk and change the pose. Pale yellow horizon light through low fog, reeds in silhouette, the character is half-crouched, listening, weapon drawn but lowered."
+    },
+    {
+      "id": "underground_temple",
+      "label": "Underground temple",
+      "default_prompt": "Put this exact character inside an underground temple of ancient carved pillars and change the pose. A single shaft of dust-laden light from above, deep blue ambient elsewhere, the character is reading a glyph on a pillar, hand traced along the stone, reverent."
+    }
+  ]
+}

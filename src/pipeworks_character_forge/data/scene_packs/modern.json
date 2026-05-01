@@ -1,0 +1,57 @@
+{
+  "name": "modern",
+  "label": "Modern / urban",
+  "description": "Contemporary everyday scenes — commute, café, gym, classroom, supermarket. For LoRAs intended to generalise across modern photographic settings.",
+  "scenes": [
+    {
+      "id": "subway_platform",
+      "label": "Subway platform",
+      "default_prompt": "Put this exact character on a busy underground subway platform and change the pose. Cool fluorescent overhead light, tiled walls, distant train motion blur, the character is checking a phone, weight on one hip."
+    },
+    {
+      "id": "coffee_shop_window",
+      "label": "Coffee shop window",
+      "default_prompt": "Put this exact character at a window seat in a small coffee shop and change the pose. Soft afternoon backlight from the window, warm interior fill, the character is mid-conversation with hands gesturing, a mug on the table."
+    },
+    {
+      "id": "supermarket_aisle",
+      "label": "Supermarket aisle",
+      "default_prompt": "Put this exact character standing in a supermarket aisle and change the pose. Even fluorescent overhead light, colorful packaging on the shelves, the character is reaching for an item with mild concentration."
+    },
+    {
+      "id": "gym_floor",
+      "label": "Gym floor",
+      "default_prompt": "Put this exact character on a commercial gym floor and change the pose. Cool overhead light with warm accent strips, racks of weights in the background, the character is mid-stretch, focused, slight perspiration."
+    },
+    {
+      "id": "classroom_chalkboard",
+      "label": "Classroom (chalkboard)",
+      "default_prompt": "Put this exact character at the front of a classroom by a chalkboard and change the pose. Soft window light from the side, rows of empty desks behind, the character is gesturing with chalk in hand, mid-explanation."
+    },
+    {
+      "id": "office_open_plan",
+      "label": "Open-plan office",
+      "default_prompt": "Put this exact character in an open-plan office between desks and change the pose. Soft mixed light from monitors and overhead fluorescents, the character is leaning lightly on a desk, listening with arms folded."
+    },
+    {
+      "id": "rooftop_bar_dusk",
+      "label": "Rooftop bar (dusk)",
+      "default_prompt": "Put this exact character at a city rooftop bar at dusk and change the pose. String lights overhead, distant skyline glow, the character is leaning on a railing with a glass in hand, relaxed, looking out."
+    },
+    {
+      "id": "hospital_corridor",
+      "label": "Hospital corridor",
+      "default_prompt": "Put this exact character in a quiet hospital corridor and change the pose. Cool clinical fluorescent light, polished linoleum reflecting the ceiling, the character is walking purposefully with hands at sides, mild concern."
+    },
+    {
+      "id": "underground_carpark",
+      "label": "Underground car park",
+      "default_prompt": "Put this exact character in an underground car park at night and change the pose. Sodium-lit pillars, shadows pooling between cars, the character is walking briskly, glancing back over one shoulder, alert."
+    },
+    {
+      "id": "laundromat",
+      "label": "Laundromat",
+      "default_prompt": "Put this exact character in a small laundromat at night and change the pose. Warm yellow overhead lights, washing-machine porthole glow, the character is sitting on a folding table, reading something on a phone, hunched and absorbed."
+    }
+  ]
+}

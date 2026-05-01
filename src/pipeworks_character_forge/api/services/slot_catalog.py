@@ -1,8 +1,14 @@
-"""Slot catalog: loads and serves the canonical 25-slot definition.
+"""Slot catalog: loads and serves the canonical 16 character-anchor slots.
 
-The catalog is the single source of truth for slot ids, labels, ordering,
-default prompts, and parent relationships. The frontend fetches it via
-``GET /api/slots`` rather than duplicating the list in JS.
+The catalog defines the stylized_base intermediate plus the 16 anchor
+leaves (turnaround, T-pose, expressions, actions). The 9 scene leaves
+that complete the 25-leaf chain are *not* in the catalog — they come
+from operator-curated JSON packs under the runtime packs dir, loaded
+by :mod:`scene_pack`. See :func:`pipeline_orchestrator.run_full` for
+how the two halves are stitched together.
+
+Frontend fetches the anchor catalog via ``GET /api/slots`` and the
+scene packs via ``GET /api/scene-packs`` — no duplication in JS.
 """
 
 from __future__ import annotations
@@ -59,7 +65,7 @@ def load_catalog() -> SlotCatalog:
 
 
 def list_slots() -> list[SlotDef]:
-    """Return all 25 leaf slots in display order. Excludes the intermediate."""
+    """Return the 16 anchor leaves in display order. Excludes the intermediate."""
     return sorted(load_catalog().slots, key=lambda s: s.order)
 
 
@@ -76,8 +82,11 @@ def _validate_invariants(catalog: SlotCatalog) -> None:
     orders = [s.order for s in catalog.slots]
     if len(orders) != len(set(orders)):
         raise ValueError("Slot catalog has duplicate order values")
-    if len(catalog.slots) != 25:
-        raise ValueError(f"Slot catalog must contain 25 leaf slots, got {len(catalog.slots)}")
+    if len(catalog.slots) != 16:
+        raise ValueError(
+            f"Slot catalog must contain 16 anchor leaf slots, got {len(catalog.slots)}. "
+            "Scene leaves (17-25) live in scene_packs, not the catalog."
+        )
     if catalog.intermediate.order != 0:
         raise ValueError("Intermediate slot must have order=0")
     for slot in catalog.slots:

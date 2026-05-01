@@ -33,6 +33,14 @@ export async function uploadSourceImage(file) {
   return response.json();
 }
 
+export async function fetchScenePacks() {
+  const response = await fetch("/api/scene-packs");
+  if (!response.ok) {
+    throw new Error(`Failed to fetch scene packs: ${await _readError(response)}`);
+  }
+  return response.json();
+}
+
 export async function createRun({
   sourceId,
   triggerWord,
@@ -43,6 +51,7 @@ export async function createRun({
   guidance,
   slotOverrides,
   onlySlots,
+  sceneSelections,
 }) {
   const response = await fetch("/api/runs", {
     method: "POST",
@@ -57,6 +66,7 @@ export async function createRun({
       guidance,
       slot_overrides: slotOverrides || {},
       only_slots: onlySlots || null,
+      scene_selections: sceneSelections || null,
     }),
   });
   if (!response.ok) {

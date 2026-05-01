@@ -38,6 +38,13 @@ class PipeworksForgeConfig(BaseSettings):
     repo_root: Path = REPO_ROOT
     runs_dir: Path = RUNTIME_ROOT / "runs"
     models_dir: Path = RUNTIME_ROOT / "models"
+    # Operator-curated JSON packs. ``scene_packs/`` holds the scene
+    # libraries used to fill scene leaves 17-25 of each run; future
+    # subdirs (``anchor_variants/``) will plug in here too. Bundled
+    # baselines under ``data/scene_packs`` are copied in by the
+    # lifespan bootstrap only if the runtime path is missing — operator
+    # edits never get clobbered by an upgrade.
+    packs_dir: Path = RUNTIME_ROOT / "packs"
     static_dir: Path = PACKAGE_ROOT / "static"
     templates_dir: Path = PACKAGE_ROOT / "templates"
     data_dir: Path = PACKAGE_ROOT / "data"

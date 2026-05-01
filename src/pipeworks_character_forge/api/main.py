@@ -22,7 +22,7 @@ from pipeworks_character_forge.api.routers import debug as debug_router
 from pipeworks_character_forge.api.routers import runs as runs_router
 from pipeworks_character_forge.api.routers import slots as slots_router
 from pipeworks_character_forge.api.routers import source as source_router
-from pipeworks_character_forge.api.services import slot_catalog
+from pipeworks_character_forge.api.services import scene_pack, slot_catalog
 from pipeworks_character_forge.api.services.job_queue import JobQueue
 from pipeworks_character_forge.api.services.pipeline_orchestrator import (
     PipelineOrchestrator,
@@ -41,6 +41,9 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     # so unit tests can monkey-patch config.runs_dir to a tmp location
     # before any filesystem side-effect lands.
     config.runs_dir.mkdir(parents=True, exist_ok=True)
+    # Seed bundled scene packs into the runtime dir on first deploy
+    # (idempotent — operator edits stay sticky across upgrades).
+    scene_pack.bootstrap(config.packs_dir, config.data_dir / "scene_packs")
 
     manager = Flux2KleinManager(config)
     catalog = slot_catalog.load_catalog()
@@ -108,6 +111,22 @@ def create_app() -> FastAPI:
             "source_prompt": catalog.source_prompt,
             "intermediate": catalog.intermediate.model_dump(),
             "slots": [s.model_dump() for s in slot_catalog.list_slots()],
+        }
+
+    @app.get("/api/scene-packs")
+    def scene_packs() -> dict[str, object]:
+        """Return all parseable scene packs from the runtime packs dir.
+
+        Walks the dir on every request — drop-in pack files are picked up
+        without a service restart. Bad files surface as warnings rather
+        than failing the whole list, so one busted JSON doesn't blank
+        the dropdown.
+        """
+        result = scene_pack.load(config.packs_dir)
+        return {
+            "packs": [p.model_dump() for p in result.packs],
+            "warnings": result.warnings,
+            "scene_slot_count": scene_pack.NUM_SCENE_SLOTS,
         }
 
     @app.get("/", response_class=HTMLResponse)

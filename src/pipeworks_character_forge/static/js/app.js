@@ -9,7 +9,7 @@
 //      updates into the grid + status panel until status reaches a
 //      terminal state.
 
-import { fetchRunManifest, fetchSlotCatalog } from "./run-client.mjs";
+import { fetchRunManifest, fetchScenePacks, fetchSlotCatalog } from "./run-client.mjs";
 import { ProgressPoller } from "./progress-bus.mjs";
 import { createSlotGrid } from "./slot-grid.mjs";
 import { createSourcePanel } from "./source-panel.mjs";
@@ -38,19 +38,29 @@ async function main() {
   });
 
   let catalog;
+  let scenePackResult;
   try {
-    catalog = await fetchSlotCatalog();
+    [catalog, scenePackResult] = await Promise.all([
+      fetchSlotCatalog(),
+      fetchScenePacks(),
+    ]);
   } catch (error) {
     document.body.insertAdjacentHTML(
       "afterbegin",
-      `<p class="forge-fatal">Failed to load slot catalog: ${error.message}</p>`,
+      `<p class="forge-fatal">Failed to load slot data: ${error.message}</p>`,
     );
     return;
+  }
+  if (scenePackResult?.warnings?.length) {
+    // Surface any pack-load warnings so the operator notices a busted
+    // JSON file in their packs dir without having to read server logs.
+    console.warn("Scene-pack warnings:", scenePackResult.warnings);
   }
 
   const slotGrid = createSlotGrid(
     document.getElementById("slot-grid"),
     catalog,
+    scenePackResult,
   );
 
   let activePoller = null;

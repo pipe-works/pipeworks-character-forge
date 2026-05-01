@@ -19,7 +19,28 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
+from pipeworks_character_forge.api.services.scene_pack import SCENE_SLOT_INDICES
 from pipeworks_character_forge.api.services.slot_catalog import SlotCatalog
+
+
+def scene_slot_id(index: int) -> str:
+    """``17`` → ``"scene_17"``. The positional slot id used in the manifest."""
+    return f"scene_{index}"
+
+
+class ResolvedScene(BaseModel):
+    """One scene picked for a scene slot, fully resolved against pack files.
+
+    Constructed by the run-create router from the operator's
+    ``scene_selections`` payload. Snapshotted into the manifest so
+    later edits to the source pack file don't mutate finished runs.
+    """
+
+    pack: str
+    scene_id: str
+    label: str
+    default_prompt: str
+
 
 SlotStatus = Literal["pending", "running", "done", "failed"]
 RunStatus = Literal["pending", "running", "done", "failed", "cancelled"]
@@ -45,6 +66,16 @@ class SlotState(BaseModel):
     # from disk. The stylized_base intermediate is always excluded from
     # the dataset regardless of this flag.
     excluded: bool = False
+    # Scene-leaf metadata. Anchor slots (stylized_base + slots 1-16)
+    # leave these as None. Scene slots (17-25) snapshot the (pack,
+    # scene_id) they were materialised from at run-create time, plus
+    # the human-readable label so the UI doesn't need to re-resolve
+    # against the pack files. The label is what tile #N actually
+    # displays; positional slot ids ``scene_17``..``scene_25`` are
+    # opaque to the operator.
+    scene_pack: str | None = None
+    scene_id: str | None = None
+    scene_label: str | None = None
 
 
 class RunParams(BaseModel):
@@ -131,6 +162,7 @@ class RunStore:
         trigger_word: str | None,
         params: RunParams,
         catalog: SlotCatalog,
+        scene_selections: list[ResolvedScene],
         slot_overrides: dict[str, str] | None = None,
         style_prefix: str | None = None,
         style_suffix: str | None = None,
@@ -138,9 +170,22 @@ class RunStore:
     ) -> RunManifest:
         """Initialise the on-disk run dir, copy the source, write the manifest.
 
+        ``scene_selections`` must have exactly :data:`NUM_SCENE_SLOTS`
+        entries — one resolved scene per slot 17 through 25, in display
+        order. The router is responsible for resolving user-supplied
+        ``(pack, scene_id)`` pairs to :class:`ResolvedScene` against the
+        currently-loaded packs (including the no-selection default).
+
         ``slot_overrides`` lets the caller substitute a custom prompt per
-        slot. Anything unspecified falls back to the catalog default.
+        slot — any ``scene_NN`` key here wins over the scene's
+        default prompt at run-create time.
         """
+        if len(scene_selections) != len(SCENE_SLOT_INDICES):
+            raise ValueError(
+                f"scene_selections must have exactly {len(SCENE_SLOT_INDICES)} "
+                f"entries (one per scene slot 17-25); got {len(scene_selections)}"
+            )
+
         overrides = slot_overrides or {}
         rd = self.run_dir(run_id)
         rd.mkdir(parents=True, exist_ok=True)
@@ -156,6 +201,14 @@ class RunStore:
         for slot in sorted(catalog.slots, key=lambda s: s.order):
             slots[slot.id] = SlotState(
                 prompt=overrides.get(slot.id) or slot.default_prompt,
+            )
+        for index, scene in zip(SCENE_SLOT_INDICES, scene_selections, strict=True):
+            slot_id = scene_slot_id(index)
+            slots[slot_id] = SlotState(
+                prompt=overrides.get(slot_id) or scene.default_prompt,
+                scene_pack=scene.pack,
+                scene_id=scene.scene_id,
+                scene_label=scene.label,
             )
 
         now = _now_iso()

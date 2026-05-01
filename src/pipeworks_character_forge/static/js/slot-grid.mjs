@@ -1,25 +1,62 @@
-// Renders the 26-tile grid (stylized base + 25 leaves) and applies
-// manifest updates from the progress poller.
+// Renders the 26-tile grid and applies manifest updates from the
+// progress poller. Layout is:
+//   - 1 stylized-base tile (promoted)
+//   - 16 anchor tiles from the slot catalog (orders 1-16)
+//   - 9 scene tiles populated from the loaded scene packs (orders 17-25)
+// The 9 scene tiles each carry a <select> dropdown so the operator
+// can swap which scene fills the slot independently.
 
 import { patchSlot, regenerateSlot } from "./run-client.mjs";
 import { createSlotTile } from "./slot-tile.mjs";
 
-export function createSlotGrid(rootEl, catalog) {
-  // Order is enforced by /api/slots: intermediate first, then leaves
-  // sorted by `order`.
+const SCENE_SLOT_INDICES = [17, 18, 19, 20, 21, 22, 23, 24, 25];
+
+export function createSlotGrid(rootEl, catalog, scenePackResult) {
+  // Order is enforced by /api/slots: intermediate first, then anchors
+  // sorted by `order`. Scene leaves come from /api/scene-packs and are
+  // appended after the anchor tiles in positions 17-25.
   const tilesById = new Map();
+  const scenePacks = scenePackResult?.packs ?? [];
+  // The "default" pack is the no-selection fallback. Pre-pick its
+  // first 9 scenes so a fresh page reads sensibly even if the operator
+  // never touches the dropdowns. Loader guarantees default has >= 9
+  // scenes (run-create errors loudly otherwise).
+  const defaultPack = scenePacks.find((p) => p.name === "default");
 
   // Promoted base tile.
   const baseTile = createSlotTile(catalog.intermediate, { promoted: true });
   tilesById.set(catalog.intermediate.id, baseTile);
   rootEl.appendChild(baseTile.root);
 
-  // Leaves.
+  // Anchor leaves.
   for (const slotDef of catalog.slots) {
     const tile = createSlotTile(slotDef);
     tilesById.set(slotDef.id, tile);
     rootEl.appendChild(tile.root);
   }
+
+  // Scene leaves. Slot ids are positional (``scene_17`` through
+  // ``scene_25``) — the actual scene chosen is metadata on the tile,
+  // not the id, so the tile id is stable across pack swaps.
+  SCENE_SLOT_INDICES.forEach((order, idx) => {
+    const initialScene = defaultPack?.scenes?.[idx];
+    const initialPick = initialScene
+      ? { pack: defaultPack.name, scene_id: initialScene.id }
+      : null;
+    const sceneSlotDef = {
+      id: `scene_${order}`,
+      label: initialScene?.label ?? `Scene ${order}`,
+      group: "scenes",
+      order,
+      parent: catalog.intermediate.id,
+      default_prompt: initialScene?.default_prompt ?? "",
+    };
+    const tile = createSlotTile(sceneSlotDef, {
+      scenePicker: { packs: scenePacks, initial: initialPick },
+    });
+    tilesById.set(sceneSlotDef.id, tile);
+    rootEl.appendChild(tile.root);
+  });
 
   // ---- per-tile interaction --------------------------------------------
 
@@ -136,12 +173,26 @@ export function createSlotGrid(rootEl, catalog) {
     promptOverrides.clear();
   }
 
+  function collectSceneSelections() {
+    // Returns the 9 (pack, scene_id) picks from the scene tiles, in
+    // slot order 17-25. Source panel posts these as
+    // ``scene_selections`` on POST /api/runs.
+    const picks = [];
+    for (const order of SCENE_SLOT_INDICES) {
+      const tile = tilesById.get(`scene_${order}`);
+      const pick = tile?.getScenePick();
+      if (pick) picks.push({ pack: pick.pack, scene_id: pick.scene_id });
+    }
+    return picks;
+  }
+
   return {
     setRunId,
     applyManifest,
     getPrompt,
     collectPromptOverrides,
     clearPromptOverrides,
+    collectSceneSelections,
     getSelectedSlotIds,
     clearSelection,
     resetVisuals,
