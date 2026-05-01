@@ -51,6 +51,7 @@ def _seed_run(
     *,
     trigger_word: str | None = None,
     style_prefix: str | None = None,
+    style_suffix: str | None = None,
     only_slots: list[str] | None = None,
 ) -> str:
     run_id = "test-run"
@@ -62,6 +63,7 @@ def _seed_run(
         source_path=source_path,
         trigger_word=trigger_word,
         style_prefix=style_prefix,
+        style_suffix=style_suffix,
         params=RunParams(seed=1000, steps=4, guidance=3.0),
         catalog=catalog,
         only_slots=only_slots,
@@ -200,6 +202,45 @@ class TestRegenerateSlot:
 
         text = (runs_dir / run_id / "01_turnaround.txt").read_text(encoding="utf-8")
         assert "Linocut" not in text
+        assert text.startswith("trgr,")
+
+    def test_style_suffix_appended_to_prompt_sent_to_manager(self, orchestrator):
+        run_id = _seed_run(
+            orchestrator,
+            style_suffix="Shot on Kodak Portra 400.",
+        )
+        orchestrator.run_full(run_id)
+
+        for call in orchestrator.manager.calls:
+            assert call["prompt"].endswith(" Shot on Kodak Portra 400.")
+
+    def test_style_prefix_and_suffix_compose_with_single_space_separators(self, orchestrator):
+        run_id = _seed_run(
+            orchestrator,
+            style_prefix="Linocut style.",
+            style_suffix="Archival paper.",
+        )
+        orchestrator.run_full(run_id)
+
+        # Every manager prompt must read "{prefix} {slot_prompt} {suffix}"
+        # with exactly one space at each join — no double spaces from an
+        # empty middle part, no leading/trailing whitespace.
+        for call in orchestrator.manager.calls:
+            prompt = call["prompt"]
+            assert prompt.startswith("Linocut style. ")
+            assert prompt.endswith(" Archival paper.")
+            assert "  " not in prompt
+
+    def test_style_suffix_does_not_leak_into_captions(self, orchestrator, runs_dir):
+        run_id = _seed_run(
+            orchestrator,
+            trigger_word="trgr",
+            style_suffix="Shot on Kodak Portra 400.",
+        )
+        orchestrator.run_full(run_id)
+
+        text = (runs_dir / run_id / "01_turnaround.txt").read_text(encoding="utf-8")
+        assert "Kodak" not in text
         assert text.startswith("trgr,")
 
     def test_cancel_between_slots_marks_run_cancelled_and_preserves_partials(

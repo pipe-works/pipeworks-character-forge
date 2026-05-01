@@ -69,6 +69,12 @@ class RunManifest(BaseModel):
     # photographically-described scenes (e.g. spooky castle, rainy
     # street).
     style_prefix: str | None = None
+    # Optional sibling of ``style_prefix`` appended to every slot's prompt.
+    # Same semantics: NOT added to captions, used as a generation-time
+    # guard. Useful when the prefix locks the look (medium/palette) and
+    # the suffix locks something that reads better at the end of the
+    # sentence ("...shot on Kodak Portra 400.").
+    style_suffix: str | None = None
     # Optional whitelist of leaf slot ids to generate. If set, ``run_full``
     # will run the stylized base (always) plus only the listed leaves;
     # everything else stays ``pending`` so the operator can iterate on
@@ -127,6 +133,7 @@ class RunStore:
         catalog: SlotCatalog,
         slot_overrides: dict[str, str] | None = None,
         style_prefix: str | None = None,
+        style_suffix: str | None = None,
         only_slots: list[str] | None = None,
     ) -> RunManifest:
         """Initialise the on-disk run dir, copy the source, write the manifest.
@@ -156,6 +163,7 @@ class RunStore:
             run_id=run_id,
             trigger_word=trigger_word,
             style_prefix=style_prefix,
+            style_suffix=style_suffix,
             only_slots=only_slots,
             params=params,
             slots=slots,

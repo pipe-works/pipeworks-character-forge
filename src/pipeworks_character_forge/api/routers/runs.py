@@ -32,6 +32,7 @@ class CreateRunRequest(BaseModel):
     source_id: str
     trigger_word: str | None = None
     style_prefix: str | None = None
+    style_suffix: str | None = None
     seed: int = 1234
     steps: int = Field(default=28, ge=1, le=200)
     guidance: float = Field(default=4.5, ge=0.0, le=20.0)
@@ -100,6 +101,7 @@ def create_run(
         source_path=source_path,
         trigger_word=body.trigger_word,
         style_prefix=body.style_prefix,
+        style_suffix=body.style_suffix,
         params=RunParams(seed=body.seed, steps=body.steps, guidance=body.guidance),
         catalog=catalog,
         slot_overrides=body.slot_overrides,
