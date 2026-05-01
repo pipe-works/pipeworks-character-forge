@@ -3,14 +3,20 @@
 // Boots on DOMContentLoaded:
 //   1. Fetches /api/slots and builds the 26-tile grid.
 //   2. Wires the source-upload + controls panel.
-//   3. On "Generate all", starts a ProgressPoller and pipes manifest
-//      updates into the grid + status panel until status=done|failed.
+//   3. If a run id is stashed in localStorage, fetches that run's
+//      manifest and re-paints the page so a refresh doesn't wipe work.
+//   4. On "Generate all", starts a ProgressPoller and pipes manifest
+//      updates into the grid + status panel until status reaches a
+//      terminal state.
 
-import { fetchSlotCatalog } from "./run-client.mjs";
+import { fetchRunManifest, fetchSlotCatalog } from "./run-client.mjs";
 import { ProgressPoller } from "./progress-bus.mjs";
 import { createSlotGrid } from "./slot-grid.mjs";
 import { createSourcePanel } from "./source-panel.mjs";
 import { initThemeToggle } from "./theme-toggle.mjs";
+
+const RUN_ID_STORAGE_KEY = "pipeworks-forge:current-run-id";
+const TERMINAL_STATES = new Set(["done", "failed", "cancelled"]);
 
 async function fetchHealth() {
   try {
@@ -49,22 +55,31 @@ async function main() {
 
   let activePoller = null;
 
+  function _startPoller(runId) {
+    if (activePoller) activePoller.stop();
+    activePoller = new ProgressPoller(runId);
+    activePoller.start();
+  }
+
+  function _stopPoller() {
+    if (activePoller) {
+      activePoller.stop();
+      activePoller = null;
+    }
+  }
+
   const sourcePanel = createSourcePanel({
     slotGrid,
     onRunStart(runId) {
+      localStorage.setItem(RUN_ID_STORAGE_KEY, runId);
       slotGrid.setRunId(runId);
-      if (activePoller) activePoller.stop();
-      activePoller = new ProgressPoller(runId);
-      activePoller.start();
+      _startPoller(runId);
     },
     onRunCancelled() {
       // Run reached `cancelled`: stop polling and reset every tile to
       // its blank state so the gallery doesn't keep showing half of
       // the cancelled run. PNGs stay on disk for inspection.
-      if (activePoller) {
-        activePoller.stop();
-        activePoller = null;
-      }
+      _stopPoller();
       slotGrid.resetVisuals();
     },
   });
@@ -74,6 +89,39 @@ async function main() {
     slotGrid.applyManifest(manifest);
     sourcePanel.setRunStatus(manifest);
   });
+
+  // A regenerate (single tile, batch, or cascade) was just queued. The
+  // poller may have stopped at the previous run's terminal state, so
+  // (re)start it — the new image only lands in the UI if we're polling.
+  window.addEventListener("forge:regen-queued", (event) => {
+    const runId = event.detail?.runId;
+    if (!runId) return;
+    _startPoller(runId);
+  });
+
+  window.addEventListener("forge:run-cleared", () => {
+    localStorage.removeItem(RUN_ID_STORAGE_KEY);
+    _stopPoller();
+  });
+
+  // Refresh-survival: if we shipped a run id last time, fetch its
+  // manifest and re-paint everything. If the run is no longer on disk,
+  // drop the stale id and boot clean.
+  const storedRunId = localStorage.getItem(RUN_ID_STORAGE_KEY);
+  if (storedRunId) {
+    try {
+      const manifest = await fetchRunManifest(storedRunId);
+      sourcePanel.hydrateFromManifest(manifest);
+      slotGrid.setRunId(manifest.run_id);
+      window.dispatchEvent(new CustomEvent("forge:manifest", { detail: manifest }));
+      if (!TERMINAL_STATES.has(manifest.status)) {
+        _startPoller(manifest.run_id);
+      }
+    } catch (error) {
+      console.warn("Stored run id no longer resolvable, clearing:", error);
+      localStorage.removeItem(RUN_ID_STORAGE_KEY);
+    }
+  }
 }
 
 if (document.readyState === "loading") {

@@ -26,6 +26,7 @@ export function createSourcePanel({ slotGrid, onRunStart, onRunCancelled }) {
   const $generate = document.getElementById("generate-all");
   const $cancel = document.getElementById("cancel-run");
   const $createDataset = document.getElementById("create-dataset");
+  const $clear = document.getElementById("clear-run");
   const $queueStatus = document.getElementById("queue-status");
   const $runError = document.getElementById("run-error");
 
@@ -33,6 +34,16 @@ export function createSourcePanel({ slotGrid, onRunStart, onRunCancelled }) {
   let _runId = null;
   let _busy = false;
   let _selectedSlotIds = [];
+  // Tracks the status seen on the last setRunStatus call so we can fire
+  // onRunCancelled only on real transitions, not when a refresh hydrates
+  // a run that was already cancelled.
+  let _previousStatus = null;
+
+  function _emitRegenQueued() {
+    window.dispatchEvent(
+      new CustomEvent("forge:regen-queued", { detail: { runId: _runId } }),
+    );
+  }
 
   // ---- Drag-and-drop ---------------------------------------------------
   //
@@ -160,8 +171,9 @@ export function createSourcePanel({ slotGrid, onRunStart, onRunCancelled }) {
         if (choice) {
           await cascadeRun(_runId);
         } else {
-          await regenerateSlot(_runId, "stylized_base");
+          await regenerateSlot(_runId, "stylized_base", slotGrid.getPrompt("stylized_base"));
         }
+        _emitRegenQueued();
         _setBusy(false, choice ? "Cascade queued." : "Base regenerate queued.");
         slotGrid.clearSelection();
         $createDataset.disabled = true;
@@ -177,8 +189,12 @@ export function createSourcePanel({ slotGrid, onRunStart, onRunCancelled }) {
     try {
       _setBusy(true, `Queuing ${_selectedSlotIds.length} regenerate(s)…`);
       for (const slotId of _selectedSlotIds) {
-        await regenerateSlot(_runId, slotId);
+        // Pass the live textarea value so any unsaved prompt edits land
+        // server-side. Without this, the batch path silently regenerates
+        // against the previously-persisted prompt.
+        await regenerateSlot(_runId, slotId, slotGrid.getPrompt(slotId));
       }
+      _emitRegenQueued();
       _setBusy(false, `${_selectedSlotIds.length} regenerate(s) queued.`);
       slotGrid.clearSelection();
       $createDataset.disabled = true;
@@ -214,6 +230,66 @@ export function createSourcePanel({ slotGrid, onRunStart, onRunCancelled }) {
       $generate.textContent = `Generate selected (${leafCount})`;
       $generate.disabled = _busy || !_sourceId;
     }
+  }
+
+  // ---- Clear run -------------------------------------------------------
+
+  $clear.addEventListener("click", () => {
+    if (!_runId) return;
+    const ok = window.confirm(
+      "Clear the current run from view?\n\n" +
+        "Files on disk are kept — this only resets the page so you can " +
+        "start a fresh run from a new source image.",
+    );
+    if (!ok) return;
+    _clearRunFromView();
+    window.dispatchEvent(new CustomEvent("forge:run-cleared"));
+  });
+
+  function _clearRunFromView() {
+    _runId = null;
+    _sourceId = null;
+    _selectedSlotIds = [];
+    $sourceImage.removeAttribute("src");
+    $sourceInfo.textContent = "";
+    $empty.hidden = false;
+    $preview.hidden = true;
+    $trigger.value = "";
+    $stylePrefix.value = "";
+    $generate.disabled = true;
+    $createDataset.disabled = true;
+    $cancel.hidden = true;
+    $clear.hidden = true;
+    _setRunStatePill({ status: "idle", run_id: "" });
+    slotGrid.resetVisuals();
+    slotGrid.clearPromptOverrides();
+    _previousStatus = null;
+    _setBusy(false, "");
+    _clearError();
+  }
+
+  // ---- Hydrate from existing manifest (page-refresh restore) -----------
+
+  function hydrateFromManifest(manifest) {
+    _runId = manifest.run_id;
+    _sourceId = null;
+    // Restore visible source preview from disk. Cache-bust on run_id so
+    // a fresh run with the same filename ("source.png") doesn't show a
+    // stale preview from the prior run.
+    $sourceImage.src = `/runs/${encodeURIComponent(_runId)}/${encodeURIComponent(manifest.source_image)}?v=${encodeURIComponent(_runId)}`;
+    $sourceInfo.textContent = `Restored from run ${_runId}`;
+    $empty.hidden = true;
+    $preview.hidden = false;
+    if (manifest.trigger_word) $trigger.value = manifest.trigger_word;
+    if (manifest.style_prefix) $stylePrefix.value = manifest.style_prefix;
+    if (manifest.params) {
+      if (manifest.params.seed !== undefined) $seed.value = manifest.params.seed;
+      if (manifest.params.steps !== undefined) $steps.value = manifest.params.steps;
+      if (manifest.params.guidance !== undefined) $guidance.value = manifest.params.guidance;
+    }
+    $clear.hidden = false;
+    if (manifest.status === "done") $createDataset.disabled = false;
+    _refreshGenerateButtonLabel();
   }
 
   // ---- Cancel run ------------------------------------------------------
@@ -272,14 +348,22 @@ export function createSourcePanel({ slotGrid, onRunStart, onRunCancelled }) {
     $runError.textContent = "";
   }
 
-  function setRunStatus(manifest) {
+  function _setRunStatePill({ status, run_id }) {
     const stateEl = document.querySelector(".forge-run-state");
     const runIdEl = document.getElementById("forge-run-id");
     if (stateEl) {
-      stateEl.dataset.state = manifest.status;
-      stateEl.textContent = manifest.status;
+      stateEl.dataset.state = status;
+      stateEl.textContent = status;
     }
-    if (runIdEl) runIdEl.textContent = manifest.run_id;
+    if (runIdEl) runIdEl.textContent = run_id ?? "";
+  }
+
+  function setRunStatus(manifest) {
+    _setRunStatePill({ status: manifest.status, run_id: manifest.run_id });
+    // Clear button is offered whenever a run is bound — gives the
+    // operator a way to drop back to a blank page without having to
+    // hard-refresh (which used to wipe their work in the bad old days).
+    $clear.hidden = false;
 
     // Cancel button is visible+enabled iff the run is actively running.
     const isRunning = manifest.status === "running";
@@ -303,9 +387,15 @@ export function createSourcePanel({ slotGrid, onRunStart, onRunCancelled }) {
       _showError(manifest.error ?? "Run failed.");
     } else if (manifest.status === "cancelled") {
       $queueStatus.textContent = "Run cancelled. Partial outputs preserved on disk.";
-      onRunCancelled?.(manifest.run_id);
+      // Don't wipe the tile gallery on the very first call after a
+      // page refresh — that would erase the partial outputs the
+      // operator just got back. Only react to live transitions.
+      const wasLive =
+        _previousStatus !== null && _previousStatus !== "cancelled";
+      if (wasLive) onRunCancelled?.(manifest.run_id);
     }
+    _previousStatus = manifest.status;
   }
 
-  return { setRunStatus };
+  return { setRunStatus, hydrateFromManifest };
 }

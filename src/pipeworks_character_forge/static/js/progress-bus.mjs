@@ -5,7 +5,9 @@
 import { fetchRunManifest } from "./run-client.mjs";
 
 const POLL_INTERVAL_MS = 2000;
-const TERMINAL_STATES = new Set(["done", "failed"]);
+// `cancelled` is terminal too — leaving it out kept the poller spinning
+// forever after a cancel.
+const TERMINAL_STATES = new Set(["done", "failed", "cancelled"]);
 
 export class ProgressPoller {
   constructor(runId, { intervalMs = POLL_INTERVAL_MS } = {}) {
