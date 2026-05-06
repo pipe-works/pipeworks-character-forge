@@ -14,6 +14,12 @@ UMask=0002
 WorkingDirectory=/srv/work/pipeworks/repos/pipeworks-character-forge
 Environment=PYTHONUNBUFFERED=1
 EnvironmentFile=/etc/pipeworks/character-forge/character-forge.env
+# HF_TOKEN is held in a host-key-encrypted systemd credential rather than
+# the env file. The path lands at ${CREDENTIALS_DIRECTORY}/hf_token for
+# the lifetime of the unit; core/config.py promotes HF_TOKEN_FILE ->
+# HF_TOKEN before any huggingface_hub import.
+LoadCredentialEncrypted=hf_token:/etc/pipeworks/character-forge/hf_token.cred
+Environment=HF_TOKEN_FILE=%d/hf_token
 ExecStart=/srv/work/pipeworks/venvs/pw-character-forge/bin/pw-forge
 Restart=on-failure
 RestartSec=3

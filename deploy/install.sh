@@ -13,9 +13,12 @@
 #   1. Pre-flight checks (user, group, mkcert, repo, venv, [ml] extras).
 #   2. mkcert leaf cert into /etc/nginx/certs/.
 #   3. nginx vhost into /etc/nginx/sites-available/, symlink, reload.
-#   4. /etc/pipeworks/character-forge/character-forge.env from the example.
-#      First install — exits with a reminder to edit HF_TOKEN.
-#      Subsequent runs — verifies HF_TOKEN is set before enabling the unit.
+#   4. /etc/pipeworks/character-forge/character-forge.env from the example
+#      (no secrets) + verifies the host-key-encrypted HF token credential
+#      at /etc/pipeworks/character-forge/hf_token.cred is in place. First
+#      install — exits with a reminder to encrypt one. Subsequent runs —
+#      verifies the credential is readable by the pipeworks group before
+#      enabling the unit.
 #   5. systemd link + daemon-reload + enable --now.
 #   6. Health probe against https://127.0.0.1:8420/api/health.
 #
@@ -35,6 +38,7 @@ SERVICE=pipeworks-character-forge.service
 
 ENV_DIR=/etc/pipeworks/character-forge
 ENV_PATH=$ENV_DIR/character-forge.env
+HF_CRED_PATH=$ENV_DIR/hf_token.cred
 NGINX_AVAIL=/etc/nginx/sites-available/$HOST
 NGINX_ENABLED=/etc/nginx/sites-enabled/$HOST
 CERT=/etc/nginx/certs/$HOST.pem
@@ -132,25 +136,58 @@ sudo install -d -m 755 "$ENV_DIR"
 if ! sudo test -f "$ENV_PATH"; then
     sudo install -m 640 -o root -g pipeworks \
         "$REPO/deploy/env/character-forge.env.example" "$ENV_PATH"
+    ok "Env file installed at $ENV_PATH"
+fi
+
+# Some older installs (pre-systemd-creds migration) baked HF_TOKEN= into
+# the env file. The unit no longer reads it from there, but a stale value
+# left on disk would defeat the whole point of the migration. Refuse to
+# proceed if one is present so the operator notices and removes it.
+if sudo grep -qE '^[[:space:]]*HF_TOKEN=' "$ENV_PATH"; then
+    die "$ENV_PATH still contains an HF_TOKEN= line.
+    HF_TOKEN now lives in $HF_CRED_PATH (encrypted).
+    Edit with: sudoedit $ENV_PATH
+    Remove the HF_TOKEN= line, then re-run this script."
+fi
+
+ok "Env file present and free of plaintext secrets"
+
+# -- 4b. HF token credential ------------------------------------------------
+
+step "HF token (systemd credential)"
+
+if ! sudo test -f "$HF_CRED_PATH"; then
     cat <<EOF
 
-$(printf '\033[33m!\033[0m') Env file installed at $ENV_PATH
-  Edit it now to set HF_TOKEN, then re-run this script:
+$(printf '\033[33m!\033[0m') HF token credential missing at $HF_CRED_PATH
 
-    sudoedit $ENV_PATH
-    bash $REPO/deploy/install.sh
+  Generate a Hugging Face read-scope token at
+      https://huggingface.co/settings/tokens
+  then encrypt it into a systemd credential:
+
+      printf '%s' "hf_xxxxxxxxxxxx" | sudo systemd-creds encrypt \\
+          --name=hf_token - $HF_CRED_PATH
+      sudo chown root:pipeworks $HF_CRED_PATH
+      sudo chmod 0640           $HF_CRED_PATH
+
+  Then re-run this script:
+      bash $REPO/deploy/install.sh
 
 EOF
     exit 0
 fi
 
-if ! sudo grep -qE '^HF_TOKEN=hf_' "$ENV_PATH"; then
-    die "HF_TOKEN= is not set in $ENV_PATH.
-    Edit with: sudoedit $ENV_PATH
-    Then re-run this script."
+# Sanity-check perms — the credential ciphertext is opaque without
+# /var/lib/systemd/credential.secret, but matching the env file's
+# ownership keeps audit grep results consistent.
+cred_mode=$(sudo stat -c '%a' "$HF_CRED_PATH")
+cred_group=$(sudo stat -c '%G' "$HF_CRED_PATH")
+if [[ $cred_mode != "640" ]] || [[ $cred_group != "pipeworks" ]]; then
+    warn "HF token credential perms drift: mode=$cred_mode group=$cred_group (want 640 root:pipeworks)."
+    warn "Fix with: sudo chown root:pipeworks $HF_CRED_PATH && sudo chmod 0640 $HF_CRED_PATH"
 fi
 
-ok "Env file present with HF_TOKEN configured"
+ok "HF token credential present at $HF_CRED_PATH"
 
 # -- 5. systemd unit --------------------------------------------------------
 
