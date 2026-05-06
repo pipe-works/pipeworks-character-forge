@@ -19,7 +19,9 @@
 #      install — exits with a reminder to encrypt one. Subsequent runs —
 #      verifies the credential is readable by the pipeworks group before
 #      enabling the unit.
-#   5. systemd link + daemon-reload + enable --now.
+#   5. systemd link + daemon-reload + enable + restart (so unit-file or
+#      credential changes from `git pull` actually take effect — `enable
+#      --now` alone leaves a running service on the old config).
 #   6. Health probe against https://127.0.0.1:8420/api/health.
 #
 # Manual follow-ups (script prints them at the end):
@@ -201,8 +203,13 @@ else
 fi
 
 sudo systemctl daemon-reload
-sudo systemctl enable --now "$SERVICE"
-ok "Service enabled and started"
+sudo systemctl enable "$SERVICE" >/dev/null
+# Always restart, never just `enable --now`: a re-run after `git pull`
+# (or after rotating the HF credential) needs the new unit content and
+# environment to actually take effect. `restart` on a stopped unit is
+# equivalent to `start`, so this works on first install too.
+sudo systemctl restart "$SERVICE"
+ok "Service enabled and (re)started"
 
 # -- 6. Health probe --------------------------------------------------------
 
