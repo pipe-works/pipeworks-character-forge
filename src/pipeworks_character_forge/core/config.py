@@ -7,10 +7,40 @@ unit). Variable names use the ``PIPEWORKS_FORGE_`` prefix.
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# Secrets exposed via systemd ``LoadCredentialEncrypted=`` are materialised
+# at ``${CREDENTIALS_DIRECTORY}/<name>`` for the lifetime of the unit. The
+# unit file passes the *path* via ``HF_TOKEN_FILE`` rather than the value via
+# ``HF_TOKEN``, keeping the secret out of any plaintext env file at rest.
+# Hugging Face libraries (``huggingface_hub``, ``transformers``,
+# ``diffusers``) only read ``HF_TOKEN`` from ``os.environ``, so promote the
+# file content into ``HF_TOKEN`` here, before any HF library import. When
+# the *_FILE variant is unset (e.g. local development) this is a no-op and
+# any existing ``HF_TOKEN`` value wins.
+_SECRET_FILE_ENV_PROMOTIONS: tuple[tuple[str, str], ...] = (("HF_TOKEN", "HF_TOKEN_FILE"),)
+
+
+def _promote_secret_file_env_vars() -> None:
+    for value_var, file_var in _SECRET_FILE_ENV_PROMOTIONS:
+        if os.environ.get(value_var):
+            continue
+        path_str = os.environ.get(file_var)
+        if not path_str:
+            continue
+        try:
+            value = Path(path_str).read_text(encoding="utf-8").strip()
+        except OSError:
+            continue
+        if value:
+            os.environ[value_var] = value
+
+
+_promote_secret_file_env_vars()
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 PACKAGE_ROOT = Path(__file__).resolve().parent.parent
