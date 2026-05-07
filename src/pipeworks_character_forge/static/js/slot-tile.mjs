@@ -217,30 +217,57 @@ export function createSlotTile(
     });
   }
 
-  function update(slotState, { runId } = {}) {
+  function update(slotState, { runId, skipPickerHydration = false } = {}) {
     if (runId) _runId = runId;
 
     // Hydrate scene metadata from the manifest. The picker dropdown is
     // updated to reflect the resolved (pack, scene_id) so a refreshed
     // page reads truthfully even if the manifest was created on a
-    // different machine with different defaults.
-    if ($scenePicker && slotState?.scene_pack && slotState?.scene_id) {
+    // different machine with different defaults. Skipped when the grid
+    // tells us the operator has changed this picker since the last
+    // run start — otherwise the next poll tick would snap the dropdown
+    // back to the manifest snapshot and erase their pick.
+    if (
+      !skipPickerHydration &&
+      $scenePicker &&
+      slotState?.scene_pack &&
+      slotState?.scene_id
+    ) {
       const value = `${slotState.scene_pack}__${slotState.scene_id}`;
       if ($scenePicker.value !== value) $scenePicker.value = value;
       _scenePick = { pack: slotState.scene_pack, scene_id: slotState.scene_id };
       if (slotState.scene_label) $label.textContent = slotState.scene_label;
+      // Sync the option-c reference prompt to the scene's actual
+      // default. Without this the next picker change compares the
+      // textarea against the catalog default (the value baked in at
+      // tile construction) and the option-c guard fires false even
+      // when the textarea still holds the picker-supplied prompt.
+      const scene = _findScene(scenePicker.packs, _scenePick.pack, _scenePick.scene_id);
+      if (scene) _sceneDefaultPrompt = scene.default_prompt;
     }
 
     // Hydrate anchor-variant snapshot from the manifest. Same shape as
     // scene hydration. The label stays whatever the catalog/slot says
     // — variants describe the *phrasing*, not the shot.
-    if ($variantPicker && slotState?.variant_pack && slotState?.variant_id) {
+    if (
+      !skipPickerHydration &&
+      $variantPicker &&
+      slotState?.variant_pack &&
+      slotState?.variant_id
+    ) {
       const value = `${slotState.variant_pack}__${slotState.variant_id}`;
       if ($variantPicker.value !== value) $variantPicker.value = value;
       _variantPick = {
         pack: slotState.variant_pack,
         variant_id: slotState.variant_id,
       };
+      const variant = _findAnchorVariant(
+        anchorVariantPicker.packs,
+        _variantPick.pack,
+        slotDef.id,
+        _variantPick.variant_id,
+      );
+      if (variant) _variantDefaultPrompt = variant.prompt;
     }
 
     const status = slotState?.status ?? "pending";

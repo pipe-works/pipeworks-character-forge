@@ -88,10 +88,34 @@ export function createSlotGrid(rootEl, catalog, scenePackResult, anchorVariantRe
   // Track per-slot prompt overrides so a manifest update doesn't clobber
   // user edits made before the chain has caught up to that slot.
   const promptOverrides = new Map();
+  // Track per-slot picker overrides — set when the operator changes a
+  // dropdown. While present, the poller's manifest-driven hydration
+  // skips the picker UI for that slot so a stale `variant_pack` or
+  // `scene_pack` snapshot can't snap the dropdown back. Cleared on
+  // full reset (clearPickerOverrides) but NOT on a fresh run, since
+  // the operator's pick is what *drives* the new run.
+  const pickerOverrides = new Set();
 
   rootEl.addEventListener("forge:tile-prompt-changed", (event) => {
     const { slotId, prompt } = event.detail;
     promptOverrides.set(slotId, prompt);
+  });
+
+  function _trackPickerChange(slotId) {
+    pickerOverrides.add(slotId);
+    // A picker change writes a new value into the textarea (option-c
+    // rule). Treat it as a prompt override too so the next poll tick
+    // doesn't overwrite the textarea with a stale manifest prompt.
+    const tile = tilesById.get(slotId);
+    if (tile) promptOverrides.set(slotId, tile.getPrompt());
+  }
+
+  rootEl.addEventListener("forge:tile-scene-changed", (event) => {
+    _trackPickerChange(event.detail.slotId);
+  });
+
+  rootEl.addEventListener("forge:tile-variant-changed", (event) => {
+    _trackPickerChange(event.detail.slotId);
   });
 
   rootEl.addEventListener("forge:tile-excluded-changed", async (event) => {
@@ -108,8 +132,10 @@ export function createSlotGrid(rootEl, catalog, scenePackResult, anchorVariantRe
 
   rootEl.addEventListener("forge:tile-regen-requested", async (event) => {
     const { slotId, runId, prompt } = event.detail;
+    const tile = tilesById.get(slotId);
+    const pick = _pickForRegenerate(tile);
     try {
-      await regenerateSlot(runId, slotId, prompt);
+      await regenerateSlot(runId, slotId, prompt, pick);
       promptOverrides.set(slotId, prompt);
       // The page-level poller stops at terminal states; tell the app
       // shell to make sure it's running so the new image lands in the
@@ -127,6 +153,15 @@ export function createSlotGrid(rootEl, catalog, scenePackResult, anchorVariantRe
     }
   });
 
+  function _pickForRegenerate(tile) {
+    if (!tile) return null;
+    const scenePick = tile.getScenePick?.();
+    if (scenePick) return { scene: scenePick };
+    const variantPick = tile.getVariantPick?.();
+    if (variantPick) return { anchor_variant: variantPick };
+    return null;
+  }
+
   // ---- public API ------------------------------------------------------
 
   function setRunId(runId) {
@@ -139,18 +174,33 @@ export function createSlotGrid(rootEl, catalog, scenePackResult, anchorVariantRe
     for (const [slotId, slotState] of Object.entries(manifest.slots)) {
       const tile = tilesById.get(slotId);
       if (!tile) continue;
-      // Don't overwrite a textarea the user is currently editing.
+      // Don't overwrite a textarea the user is currently editing —
+      // including when the edit came from a picker change (we wrote
+      // the new value into promptOverrides at that point so the
+      // poller can't undo it on the next tick).
       const userOverride = promptOverrides.get(slotId);
       if (userOverride === undefined && slotState.prompt) {
         tile.setPrompt(slotState.prompt);
       }
-      tile.update(slotState, { runId: manifest.run_id });
+      tile.update(slotState, {
+        runId: manifest.run_id,
+        skipPickerHydration: pickerOverrides.has(slotId),
+      });
     }
   }
 
   function getPrompt(slotId) {
     const tile = tilesById.get(slotId);
     return tile ? tile.getPrompt() : null;
+  }
+
+  function getPickForSlot(slotId) {
+    // Picker pick to send alongside a regenerate POST. Returns null
+    // for slots without a picker (shouldn't happen — every tile has
+    // one — but kept defensive). Source-panel uses this for the
+    // batch-regenerate path so each queued regenerate carries the
+    // tile's current dropdown snapshot.
+    return _pickForRegenerate(tilesById.get(slotId));
   }
 
   function collectPromptOverrides() {
@@ -198,6 +248,10 @@ export function createSlotGrid(rootEl, catalog, scenePackResult, anchorVariantRe
     promptOverrides.clear();
   }
 
+  function clearPickerOverrides() {
+    pickerOverrides.clear();
+  }
+
   function collectSceneSelections() {
     // Returns the 9 (pack, scene_id) picks from the scene tiles, in
     // slot order 17-25. Source panel posts these as
@@ -229,8 +283,10 @@ export function createSlotGrid(rootEl, catalog, scenePackResult, anchorVariantRe
     setRunId,
     applyManifest,
     getPrompt,
+    getPickForSlot,
     collectPromptOverrides,
     clearPromptOverrides,
+    clearPickerOverrides,
     collectSceneSelections,
     collectAnchorVariants,
     getSelectedSlotIds,

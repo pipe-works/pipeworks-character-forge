@@ -177,7 +177,12 @@ export function createSourcePanel({ slotGrid, onRunStart, onRunCancelled }) {
         if (choice) {
           await cascadeRun(_runId);
         } else {
-          await regenerateSlot(_runId, "stylized_base", slotGrid.getPrompt("stylized_base"));
+          await regenerateSlot(
+            _runId,
+            "stylized_base",
+            slotGrid.getPrompt("stylized_base"),
+            slotGrid.getPickForSlot("stylized_base"),
+          );
         }
         _emitRegenQueued();
         _setBusy(false, choice ? "Cascade queued." : "Base regenerate queued.");
@@ -197,8 +202,14 @@ export function createSourcePanel({ slotGrid, onRunStart, onRunCancelled }) {
       for (const slotId of _selectedSlotIds) {
         // Pass the live textarea value so any unsaved prompt edits land
         // server-side. Without this, the batch path silently regenerates
-        // against the previously-persisted prompt.
-        await regenerateSlot(_runId, slotId, slotGrid.getPrompt(slotId));
+        // against the previously-persisted prompt. The picker pick
+        // rides alongside so the manifest snapshot tracks the dropdown.
+        await regenerateSlot(
+          _runId,
+          slotId,
+          slotGrid.getPrompt(slotId),
+          slotGrid.getPickForSlot(slotId),
+        );
       }
       _emitRegenQueued();
       _setBusy(false, `${_selectedSlotIds.length} regenerate(s) queued.`);
@@ -270,6 +281,7 @@ export function createSourcePanel({ slotGrid, onRunStart, onRunCancelled }) {
     _setRunStatePill({ status: "idle", run_id: "" });
     slotGrid.resetVisuals();
     slotGrid.clearPromptOverrides();
+    slotGrid.clearPickerOverrides();
     _previousStatus = null;
     _setBusy(false, "");
     _clearError();

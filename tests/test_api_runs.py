@@ -525,3 +525,87 @@ class TestRegenerateSlot:
             json={},
         )
         assert response.status_code == 404
+
+    def test_anchor_variant_pick_updates_snapshot_and_prompt(self, client):
+        source_id = _upload_source(client)
+        run_id = client.post("/api/runs", json={"source_id": source_id}).json()["run_id"]
+
+        response = client.post(
+            f"/api/runs/{run_id}/slots/turnaround/regenerate",
+            json={"anchor_variant": {"pack": "photoreal", "variant_id": "studio_sheet"}},
+        )
+        assert response.status_code == 202
+
+        slot = client.run_store.load(run_id).slots["turnaround"]
+        assert slot.variant_pack == "photoreal"
+        assert slot.variant_id == "studio_sheet"
+        # Picker pick (without explicit prompt) drives prompt to the
+        # variant's prompt — same UX as the dropdown change in the UI.
+        assert "Photograph" in slot.prompt
+
+    def test_explicit_prompt_wins_over_anchor_variant_default(self, client):
+        source_id = _upload_source(client)
+        run_id = client.post("/api/runs", json={"source_id": source_id}).json()["run_id"]
+
+        response = client.post(
+            f"/api/runs/{run_id}/slots/turnaround/regenerate",
+            json={
+                "prompt": "Operator hand-edit",
+                "anchor_variant": {"pack": "photoreal", "variant_id": "studio_sheet"},
+            },
+        )
+        assert response.status_code == 202
+
+        slot = client.run_store.load(run_id).slots["turnaround"]
+        # Snapshot still records the picker the operator was on, even
+        # though the prompt itself is hand-edited away from the
+        # variant default.
+        assert slot.variant_pack == "photoreal"
+        assert slot.variant_id == "studio_sheet"
+        assert slot.prompt == "Operator hand-edit"
+
+    def test_scene_pick_updates_snapshot_and_prompt(self, client):
+        source_id = _upload_source(client)
+        run_id = client.post("/api/runs", json={"source_id": source_id}).json()["run_id"]
+
+        response = client.post(
+            f"/api/runs/{run_id}/slots/scene_17/regenerate",
+            json={"scene": {"pack": "high_fantasy", "scene_id": "ruined_throne_room"}},
+        )
+        assert response.status_code == 202
+
+        slot = client.run_store.load(run_id).slots["scene_17"]
+        assert slot.scene_pack == "high_fantasy"
+        assert slot.scene_id == "ruined_throne_room"
+        assert slot.scene_label  # populated from pack file
+        assert "throne" in slot.prompt.lower()
+
+    def test_anchor_variant_on_scene_slot_returns_400(self, client):
+        source_id = _upload_source(client)
+        run_id = client.post("/api/runs", json={"source_id": source_id}).json()["run_id"]
+
+        response = client.post(
+            f"/api/runs/{run_id}/slots/scene_17/regenerate",
+            json={"anchor_variant": {"pack": "default", "variant_id": "default"}},
+        )
+        assert response.status_code == 400
+
+    def test_scene_on_anchor_slot_returns_400(self, client):
+        source_id = _upload_source(client)
+        run_id = client.post("/api/runs", json={"source_id": source_id}).json()["run_id"]
+
+        response = client.post(
+            f"/api/runs/{run_id}/slots/turnaround/regenerate",
+            json={"scene": {"pack": "default", "scene_id": "neon_alley"}},
+        )
+        assert response.status_code == 400
+
+    def test_unknown_anchor_variant_pack_returns_400(self, client):
+        source_id = _upload_source(client)
+        run_id = client.post("/api/runs", json={"source_id": source_id}).json()["run_id"]
+
+        response = client.post(
+            f"/api/runs/{run_id}/slots/turnaround/regenerate",
+            json={"anchor_variant": {"pack": "does_not_exist", "variant_id": "x"}},
+        )
+        assert response.status_code == 400
