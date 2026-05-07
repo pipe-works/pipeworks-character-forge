@@ -141,8 +141,20 @@ export async function patchSlot(runId, slotId, patch) {
   return response.json();
 }
 
-export async function regenerateSlot(runId, slotId, prompt) {
-  const body = prompt !== undefined && prompt !== null ? { prompt } : {};
+export async function regenerateSlot(runId, slotId, prompt, pick = null) {
+  // ``pick`` is one of:
+  //   { anchor_variant: { pack, variant_id } }   — anchor slots
+  //   { scene:          { pack, scene_id } }     — scene slots
+  //   null                                       — no picker change
+  // The body fields ride alongside ``prompt`` so the manifest's
+  // ``variant_pack`` / ``scene_pack`` snapshot stays in sync with the
+  // image actually generated. Without this, repeated dropdown changes
+  // would drift the snapshot away from the prompt and a page refresh
+  // would show a dropdown that lies about what was generated.
+  const body = {};
+  if (prompt !== undefined && prompt !== null) body.prompt = prompt;
+  if (pick && pick.anchor_variant) body.anchor_variant = pick.anchor_variant;
+  if (pick && pick.scene) body.scene = pick.scene;
   const response = await fetch(
     `/api/runs/${encodeURIComponent(runId)}/slots/${encodeURIComponent(slotId)}/regenerate`,
     {
