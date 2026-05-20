@@ -3,8 +3,8 @@
 #
 # Run as a regular user (in the pipeworks group). The script invokes sudo
 # only for the privileged steps (cert install, nginx vhost, env file,
-# systemd link). Idempotent: safe to re-run after editing the env file
-# or after pulling new commits.
+# systemd unit install). Idempotent: safe to re-run after editing the env
+# file or after pulling new commits.
 #
 # Usage:
 #   bash deploy/install.sh
@@ -19,9 +19,13 @@
 #      install — exits with a reminder to encrypt one. Subsequent runs —
 #      verifies the credential is readable by the pipeworks group before
 #      enabling the unit.
-#   5. systemd link + daemon-reload + enable + restart (so unit-file or
-#      credential changes from `git pull` actually take effect — `enable
-#      --now` alone leaves a running service on the old config).
+#   5. systemd unit install + daemon-reload + enable + restart (so
+#      unit-file or credential changes from `git pull` actually take
+#      effect — `enable --now` alone leaves a running service on the old
+#      config). The unit is copied as a real file into
+#      /etc/systemd/system/ rather than symlinked from the repo, because
+#      /srv is a separate mount that is not yet available at early boot
+#      when systemd parses unit files.
 #   6. Health probe against https://127.0.0.1:8420/api/health.
 #
 # Manual follow-ups (script prints them at the end):
@@ -45,7 +49,7 @@ NGINX_AVAIL=/etc/nginx/sites-available/$HOST
 NGINX_ENABLED=/etc/nginx/sites-enabled/$HOST
 CERT=/etc/nginx/certs/$HOST.pem
 KEY=/etc/nginx/certs/$HOST-key.pem
-SYSTEMD_LINK=/etc/systemd/system/$SERVICE
+SYSTEMD_UNIT=/etc/systemd/system/$SERVICE
 
 # -- Helpers ----------------------------------------------------------------
 
@@ -195,12 +199,19 @@ ok "HF token credential present at $HF_CRED_PATH"
 
 step "systemd unit"
 
-if [[ ! -L $SYSTEMD_LINK ]]; then
-    sudo systemctl link "$REPO/deploy/systemd/$SERVICE"
-    ok "Linked $SYSTEMD_LINK -> $REPO/deploy/systemd/$SERVICE"
-else
-    ok "Unit already linked"
+# Copy the unit file into /etc/systemd/system/ as a real file owned by
+# root. Earlier revisions used `systemctl link` to point at the in-repo
+# copy, but systemd parses unit files at early boot before /srv is
+# mounted — at which point the symlink target is unreachable and the
+# unit is dropped for the rest of the boot. A real file on the root FS
+# avoids that ordering trap, matching every other pipeworks-* service
+# on this host.
+if [[ -L $SYSTEMD_UNIT ]]; then
+    sudo rm -f "$SYSTEMD_UNIT"
 fi
+sudo install -m 644 -o root -g root \
+    "$REPO/deploy/systemd/$SERVICE" "$SYSTEMD_UNIT"
+ok "Installed $SYSTEMD_UNIT"
 
 sudo systemctl daemon-reload
 sudo systemctl enable "$SERVICE" >/dev/null
